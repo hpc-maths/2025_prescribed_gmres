@@ -320,7 +320,7 @@ function [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL,
             % Step length in the research direction
             alpha = herm_prod(HL_r, HL_Ap(:,i)) / herm_prod(HL_Ap(:,i), HL_Ap(:,i));
 
-            if alpha < 1e-12
+            if abs(alpha) < 1e-12
                 warning('GCR: breakdown.');
                 flag = FLAG_BREAKDOWN;
                 break;
