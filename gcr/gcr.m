@@ -1,4 +1,4 @@
-function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR, W, Y, Z, x0, varargin)
+function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR, varargin)
 %GCR   Generalized Conjugate Residual Method.
 %   X = GCR(A,B) attempts to solve the system of linear equations A*X = B
 %   for X.  The N-by-N coefficient matrix A must be square and the right
@@ -27,19 +27,20 @@ function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR
 %   preconditioner is not applied. They may be a function handle
 %   returning HL\X.
 %
-%   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,W) specifies the weight matrix 
-%   defining the hermitian inner product. W must be hermitian positive
-%   definite. If W is [] then GCR uses the default, the identity.
+%   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,'weight',W) specifies the weight  
+%   matrix defining the hermitian inner product. W must be hermitian 
+%   positive definite. If W is [] or not specified, then GCR uses the 
+%   default, the identity matrix.
 %
-%   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,W,Y,Z) specifies the deflation
+%   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,'defl',Y,Z) specifies the deflation
 %   spaces.
 %
-%   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,W,Y,Z,X0) specifies the first 
-%   initial guess. If X0 is [] then GCR uses the default, an all zero 
-%   vector.
+%   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,'guess',X0) specifies the first 
+%   initial guess. If X0 is [] or not specified, then GCR uses the default, 
+%   an all zero vector.
 %
-%   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,W,Y,Z,X0,'res',OPT) specifies how
-%   the residual norm is computed. If OPT = 'p' (default), then the norm
+%   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,'res',OPT) specifies how the
+%   residual norm is computed. If OPT = 'p' (default), then the norm
 %   of the preconditioned residual is used. If OPT = 'wp', then the W-norm
 %   of the preconditioned residual is used. If OPT = '', then the 2-norm
 %   of the non-preconditioned residual is returned. 
@@ -62,8 +63,6 @@ function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR
 %   Note with preconditioners HL,HR, the residual is NORM(HR\(HL\(B-A*X))).
 
     %% Argument processing
-    
-    with_deflation = 0;
 
     if nargin < 3
         restart = [];
@@ -80,17 +79,24 @@ function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR
     if nargin < 7
         HR = [];
     end
-    if nargin < 8
-        W = [];
-    end
-    if nargin < 9
-        Y = [];
-    end
-    if nargin < 10
-        Z = [];
-    end
-    if nargin < 11
-        x0 = [];
+
+    % Weight matrix
+    W = [];
+
+    x0 = [];
+    
+    % Deflation spaces
+    with_deflation = 0;
+    Y = [];
+    Z = [];
+
+    i = 1;
+    while i < length(varargin)
+        if strcmp(varargin{i}, 'defl')
+            Y = varargin{i+1};
+            Z = varargin{i+2};
+        end
+        i = i+1;
     end
 
     if ~isempty(Y) && ~isempty(Z)
@@ -128,7 +134,7 @@ function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR
 
     if ~with_deflation
         % If no deflation space, then we apply the regular GCR algorithm
-        [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL, HR, W, x0, varargin);
+        [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL, HR, varargin{:});
     else
         % Initializations
         AZ = A*Z;
@@ -143,7 +149,7 @@ function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR
         PDb = apply_PD(b);
     
         % Solve deflated system with GCR
-        [x, flag, relres, iter, resvec] = wp_gcr(apply_PDA, PDb, restart, tol, maxit, HL, HR, W, x0, varargin);
+        [x, flag, relres, iter, resvec] = wp_gcr(apply_PDA, PDb, restart, tol, maxit, HL, HR, varargin{:});
     
         % x = QD*x + (I-QD)x
         x = apply_QD(x) + Z*solve_YtAZ(Y'*b);
@@ -157,7 +163,7 @@ end
 %     Weighted Preconditioned CGR      %
 %           (no deflation)             %
 %  ----------------------------------  %
-function [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL, HR, W, x0, varargin)
+function [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL, HR, varargin)
 
     %% Argument processing
 
@@ -211,18 +217,6 @@ function [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL,
         end
     end
 
-    if nargin < 8 || isempty(W)
-        herm_prod = @(x,y) y'*x;
-        norm_W = @(x) norm(x);
-    else
-        herm_prod = @(x,y) y'*W*x;
-        norm_W = @(x) sqrt(x'*W*x);
-    end
-
-    if nargin < 9 || isempty(x0)
-        x0 = zeros(n, 1);
-    end
-
     if isa(A, 'function_handle')
         apply_A = @(x) A(x);
     else
@@ -241,18 +235,39 @@ function [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL,
 
     apply_H = @(r) apply_HR(apply_HL(r));
 
+    W = [];
+    x0 = [];
+
     prec_res     = 1;
     weighted_res = 0;
 
     i = 1;
-    while i < length(varargin{:})
-        if strcmp(varargin{:}{i}, 'res')
-            prec_res     = ~isempty(strfind(varargin{:}{i+1}, 'p'));
-            weighted_res = ~isempty(strfind(varargin{:}{i+1}, 'w'));
+    while i < length(varargin)
+        if strcmp(varargin{i}, 'weight')
+            W = varargin{i+1};
+        elseif strcmp(varargin{i}, 'guess')
+            x0 = varargin{i+1};
+        elseif strcmp(varargin{i}, 'res')
+            prec_res     = ~isempty(strfind(varargin{i+1}, 'p'));
+            weighted_res = ~isempty(strfind(varargin{i+1}, 'w'));
+        elseif strcmp(varargin{i}, 'defl')
+            i = i+1;
         else
             error('Unknown option');
         end
         i = i+2;
+    end
+
+    if isempty(W)
+        herm_prod = @(x,y) y'*x;
+        norm_W = @(x) norm(x);
+    else
+        herm_prod = @(x,y) y'*W*x;
+        norm_W = @(x) sqrt(x'*W*x);
+    end
+
+    if isempty(x0)
+        x0 = zeros(n, 1);
     end
 
     %% Initializations
@@ -260,7 +275,7 @@ function [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL,
     [norm_b, norm_Hb, norm_Hb_W, norm_b_W] = b_norm(b, apply_H, norm_W, prec_res, weighted_res);
 
     x = x0;
-    if nargin < 9 || norm(x) == 0
+    if norm(x) == 0
         r = b;
     else
         r = b - apply_A(x);

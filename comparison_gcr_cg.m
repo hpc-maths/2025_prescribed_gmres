@@ -30,7 +30,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 %% GCR
 
 W = inv(A); % Weight matrix
-[x,flag,relres,iter,resvec] = gcr(A, b, [], tol, maxit, HL, HR, W, [], [], [], 'res', '');
+[x,flag,relres,iter,resvec] = gcr(A, b, [], tol, maxit, HL, HR, 'weight', W, 'res', '');
 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_b, 'Marker', 'x');
 legend('CG','GCR');
