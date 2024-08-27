@@ -26,9 +26,10 @@ function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR
 %   returning HL\X.
 %
 %   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,'weight',W) specifies the weight  
-%   matrix defining the hermitian inner product. W must be hermitian 
-%   positive definite. If W is [] or not specified, then GCR uses the 
-%   identity matrix.
+%   matrix defining the hermitian inner product used in the algorithm,
+%   computed by y'*W*x. W must be hermitian positive definite. 
+%   A function can also be passed, returning how W is applied to a vector.
+%   If W is [] or not specified, then GCR uses the identity.
 %
 %   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,'defl',Y,Z) specifies the deflation
 %   spaces.
@@ -56,7 +57,7 @@ function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR
 %   [X,FLAG] = GCR(A,B,...) also returns a convergence FLAG:
 %    0 GCR converged to the desired tolerance TOL within MAXIT iterations.
 %    1 GCR iterated MAXIT times but did not converge.
-%    2 preconditioner M was ill-conditioned.
+%    2 preconditioner HL or HR was ill-conditioned.
 %    3 a breakdown occured.
 %
 %   [X,FLAG,RELRES] = GCR(A,B,...) also returns the relative residual
@@ -165,7 +166,7 @@ end
 
 
 %% ---------------------------------- %%
-%     Weighted Preconditioned CGR      %
+%     Weighted Preconditioned GCR      %
 %           (no deflation)             %
 %  ----------------------------------  %
 function [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL, HR, varargin)
@@ -268,6 +269,9 @@ function [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL,
     if isempty(W)
         herm_prod = @(x,y) y'*x;
         norm_W = @(x) norm(x);
+    elseif isa(W, 'function_handle')
+        herm_prod = @(x,y) y'*W(x);
+        norm_W = @(x) sqrt(x'*W(x));
     else
         herm_prod = @(x,y) y'*W*x;
         norm_W = @(x) sqrt(x'*W*x);

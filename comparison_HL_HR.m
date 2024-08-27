@@ -2,9 +2,9 @@ addpath('gcr');
 addpath('test_cases');
 
 %% System to solve
-n = 10;
-%A = convdiff(100, 0.001);
-A = laplacian(n);
+n = 100;
+A = convdiff(n, 0.001);
+%A = laplacian(n);
 b = rand(size(A, 1), 1);
 
 %% Solver parameters
@@ -12,8 +12,9 @@ tol     = 1e-8;
 maxit   = size(A, 1);
 
 % Preconditioners
-L = ichol(A);
-H = L'*L;
+%L = ichol(A);
+%H = L'*L;
+[H,U] = ilu(A);
 %H = diag(diag(A));
 %H = @(x) Jacobi(A, b, x);
 %H = @(x) SymGaussSeidel(A, b, x);

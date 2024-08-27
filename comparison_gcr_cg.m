@@ -4,8 +4,7 @@ addpath('test_cases');
 %% System to solve
 n = 100;
 %A = laplacian(n);
-%A = 1/(n+1)*gallery('tridiag', n, -1, 2,-1); % 1D diffusion problem
-A = sprandsym(n, 1e-1, 1e-4) + speye(n, n);
+A = random_spd(n);
 
 b = rand(size(A, 1), 1);
 
@@ -32,7 +31,7 @@ hold(axes, 'on');
 set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 
 %% GCR
-W = inv(A); % Weight matrix
+W = @(x) A\x; % Weight matrix = A^-1
 [x,flag,relres,iter,resvec] = gcr(A, b, [], tol, maxit, HL, HR, 'weight', W, 'res', ''); % For comparison, we don't want the weighted norm of the residual
 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_b, 'Marker', 'x');
