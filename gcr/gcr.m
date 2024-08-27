@@ -1,7 +1,7 @@
 function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR, varargin)
 %GCR   Generalized Conjugate Residual Method.
 %   X = GCR(A,B) attempts to solve the system of linear equations A*X = B
-%   for X.  The N-by-N coefficient matrix A must be square and the right
+%   for X. The N-by-N coefficient matrix A must be square and the right
 %   hand side column vector B must have length N. This uses the unrestarted
 %   method with MIN(N,10) total iterations.
 %
@@ -11,15 +11,13 @@ function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR
 %   AFUN.
 %
 %   X = GCR(A,B,RESTART) restarts the method every RESTART iterations.
-%   If RESTART is N or [] then GCR uses the unrestarted method as above.
+%   If RESTART is [] then GCR uses the unrestarted method as above.
 %
-%   X = GCR(A,B,RESTART,TOL) specifies the tolerance of the method.  If
+%   X = GCR(A,B,RESTART,TOL) specifies the tolerance of the method. If
 %   TOL is [] then GCR uses the default, 1e-6.
 %
-%   X = GCR(A,B,RESTART,TOL,MAXIT) specifies the maximum number of outer
-%   iterations. Note: the total number of iterations is RESTART*MAXIT. If
-%   MAXIT is [] then GCR uses the default, MIN(N/RESTART,10). If RESTART
-%   is N or [] then the total number of iterations is MAXIT.
+%   X = GCR(A,B,RESTART,TOL,MAXIT) specifies the maximum number of
+%   iterations.
 %
 %   X = GCR(A,B,RESTART,TOL,MAXIT,HL) and
 %   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR) use left and right 
@@ -30,7 +28,7 @@ function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR
 %   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,'weight',W) specifies the weight  
 %   matrix defining the hermitian inner product. W must be hermitian 
 %   positive definite. If W is [] or not specified, then GCR uses the 
-%   default, the identity matrix.
+%   identity matrix.
 %
 %   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,'defl',Y,Z) specifies the deflation
 %   spaces.
@@ -40,10 +38,20 @@ function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR
 %   an all zero vector.
 %
 %   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,'res',OPT) specifies how the
-%   residual norm is computed. If OPT = 'p' (default), then the norm
-%   of the preconditioned residual is used. If OPT = 'wp', then the W-norm
-%   of the preconditioned residual is used. If OPT = '', then the 2-norm
-%   of the non-preconditioned residual is returned. 
+%   residual norm is computed. The convergence cirterion also uses the 
+%   same configuration to compute the norm of B for assessing the relative
+%   residual norm RELRES.
+%   OPT='l': HL is applied: RELRES=norm(HL\R)/norm(HL\B)
+%   OPT='r': HR is applied: RELRES=norm(HR\R)/norm(HR\B)
+%   OPT='w': the W-norm is used.
+%   OPT='' : RELRES=norm(R)/norm(B) 
+%   Option combinations are allowed.
+%   The default value depends on the presence of HL, HR, W, so that the
+%   residual corresponds to the one that is minimized by the algorithm.
+%   Examples:
+%   If HL is provided, or HL and HR, then RELRES=norm(HL\R)/norm(HL\B).
+%   If HR only, then RELRES=norm(R)/norm(B).
+%   If W is provided, then the W-norm is used.
 %
 %   [X,FLAG] = GCR(A,B,...) also returns a convergence FLAG:
 %    0 GCR converged to the desired tolerance TOL within MAXIT iterations.
@@ -52,15 +60,17 @@ function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR
 %    3 a breakdown occured.
 %
 %   [X,FLAG,RELRES] = GCR(A,B,...) also returns the relative residual
-%   NORM(B-A*X)/NORM(B). If FLAG is 0, then RELRES <= TOL. Note with
-%   preconditioners HL,HR, the residual is NORM(HR\(HL\(B-A*X))).
+%   NORM(B-A*X)/NORM(B). If FLAG is 0, then RELRES <= TOL. Note that with
+%   preconditioners the preconditioned relative residual may be used.
+%   See argument 'res' for details.
 %
 %   [X,FLAG,RELRES,ITER] = GCR(A,B,...) also returns both the iteration
 %   number at which X was computed: 0 <= ITER <= MAXIT.
 %
 %   [X,FLAG,RELRES,ITER,RESVEC] = GCR(A,B,...) also returns a vector of
-%   the residual norms at each inner iteration, including NORM(B-A*X0).
-%   Note with preconditioners HL,HR, the residual is NORM(HR\(HL\(B-A*X))).
+%   the (absolute) residual norms at each iteration.
+%   See argument 'res' for detail on how RESVEC is computed according
+%   to the presence of preconditioners and weighted norm.
 
     %% Argument processing
 
@@ -79,11 +89,6 @@ function [x, flag, relres, iter, resvec] = gcr(A, b, restart, tol, maxit, HL, HR
     if nargin < 7
         HR = [];
     end
-
-    % Weight matrix
-    W = [];
-
-    x0 = [];
     
     % Deflation spaces
     with_deflation = 0;
@@ -223,23 +228,24 @@ function [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL,
         apply_A = @(x) A*x;
     end
     if isa(HL, 'function_handle')
-        apply_HL = @(r) HL(r);
+        apply_HL = @(x) HL(x);
     else
-        apply_HL = @(r) HL\r;
+        apply_HL = @(x) HL\x;
     end
     if isa(HR, 'function_handle')
-        apply_HR = @(r) HR(r);
+        apply_HR = @(x) HR(x);
     else
-        apply_HR = @(r) HR\r;
+        apply_HR = @(x) HR\x;
     end
 
-    apply_H = @(r) apply_HR(apply_HL(r));
+    apply_H = @(x) apply_HR(apply_HL(x));
 
     W = [];
     x0 = [];
 
-    prec_res     = 1;
-    weighted_res = 0;
+    L_prec_res   = 1;
+    R_prec_res   = 0;
+    weighted_res = 1;
 
     i = 1;
     while i < length(varargin)
@@ -248,7 +254,8 @@ function [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL,
         elseif strcmp(varargin{i}, 'guess')
             x0 = varargin{i+1};
         elseif strcmp(varargin{i}, 'res')
-            prec_res     = ~isempty(strfind(varargin{i+1}, 'p'));
+            L_prec_res   = ~isempty(strfind(varargin{i+1}, 'l'));
+            R_prec_res   = ~isempty(strfind(varargin{i+1}, 'r'));
             weighted_res = ~isempty(strfind(varargin{i+1}, 'w'));
         elseif strcmp(varargin{i}, 'defl')
             i = i+1;
@@ -270,9 +277,28 @@ function [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL,
         x0 = zeros(n, 1);
     end
 
+    %% How to compute the norm of b
+    if weighted_res
+        apply_res_norm = @(x) norm_W(x);
+    else
+        apply_res_norm = @(x) norm(x);
+    end
+
+    if L_prec_res && ~R_prec_res
+        apply_res_prec = apply_HL;
+    elseif L_prec_res && R_prec_res
+        apply_res_prec = apply_H;
+    elseif R_prec_res
+        apply_res_prec = apply_HR;
+    else
+        apply_res_prec = @(x) x;
+    end
+
+    compute_b_norm = @(x) apply_res_norm(apply_res_prec(x));
+
     %% Initializations
 
-    [norm_b, norm_Hb, norm_Hb_W, norm_b_W] = b_norm(b, apply_H, norm_W, prec_res, weighted_res);
+    norm_Hb_W = compute_b_norm(b);
 
     x = x0;
     if norm(x) == 0
@@ -316,7 +342,8 @@ function [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL,
         end
 
         % Compute residual norm and check convergence
-        [absres, relres] = residual_norm(r, z, norm_b, norm_Hb, norm_Hb_W, norm_b_W, norm_W, prec_res, weighted_res);
+        absres = residual_norm(r, HL_r, z, apply_HR, apply_res_norm, L_prec_res, R_prec_res);
+        relres = absres/norm_Hb_W;
         resvec((outer-1)*restart + 1) = absres;
 
         if (relres < tol)
@@ -355,7 +382,8 @@ function [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL,
             end
     
             % Compute residual norm and check convergence
-            [absres, relres] = residual_norm(r, z, norm_b, norm_Hb, norm_Hb_W, norm_b_W, norm_W, prec_res, weighted_res);
+            absres = residual_norm(r, HL_r, z, apply_HR, apply_res_norm, L_prec_res, R_prec_res);
+            relres = absres/norm_Hb_W;
             resvec((outer-1)*restart + i+1) = absres;
     
             if (relres < tol)
@@ -384,44 +412,21 @@ function [x, flag, relres, iter, resvec] = wp_gcr(A, b, restart, tol, maxit, HL,
     end
     % Remove unused space
     resvec = resvec(1:iter+1);
-end
 
-function [norm_b, norm_Hb, norm_Hb_W, norm_b_W] = b_norm(b, apply_H, norm_W, prec_res, weighted_res)
-    if prec_res && ~weighted_res
-        norm_b    = -1;
-        norm_Hb   = norm(apply_H(b)); % ||Hb||
-        norm_Hb_W = -1;
-        norm_b_W  = -1;
-    elseif prec_res && weighted_res
-        norm_b    = -1;
-        norm_Hb   = -1;
-        norm_Hb_W = norm_W(apply_H(b)); % ||Hb||_W
-        norm_b_W  = -1;
-    elseif ~prec_res && ~weighted_res
-        norm_b    = norm(b); % ||b||
-        norm_Hb   = -1;
-        norm_Hb_W = -1;
-        norm_b_W  = -1;
-    else
-        norm_b    = -1;
-        norm_Hb   = -1;
-        norm_Hb_W = -1;
-        norm_b_W  = norm_W(b); % ||b||_W
+    if flag == FLAG_DIVERGENCE
+        warning('GCR: the given tolerance could not be reached.');
     end
 end
 
-function [absres, relres] = residual_norm(r, z, norm_b, norm_Hb, norm_Hb_W, norm_b_W, norm_W, prec_res, weighted_res)
-    if prec_res && ~weighted_res
-        absres = norm(z);        % absolute residual norm ||Hr||
-        relres = absres/norm_Hb; % relative residual norm ||Hr||/||Hb||
-    elseif prec_res && weighted_res
-        absres = norm_W(z);        % absolute residual norm ||Hr||_W
-        relres = absres/norm_Hb_W; % relative residual norm ||Hr||_W/||Hb||_W
-    elseif ~prec_res && ~weighted_res
-        absres = norm(r);       % absolute residual norm ||r||
-        relres = absres/norm_b; % relative residual norm ||r||/||b||
+
+function absres = residual_norm(r, HL_r, H_r, apply_HR, apply_res_norm, L_prec_res, R_prec_res)
+    if L_prec_res && ~R_prec_res
+        absres = apply_res_norm(HL_r);        % ||HL r||
+    elseif L_prec_res && R_prec_res
+        absres = apply_res_norm(H_r);         % ||H r||
+    elseif R_prec_res
+        absres = apply_res_norm(apply_HR(r)); % ||HR r||
     else
-        absres = norm_W(r);       % absolute residual norm ||r||_W
-        relres = absres/norm_b_W; % relative residual norm ||r||_W/||b||_W
+        absres = apply_res_norm(r);           % ||r||
     end
 end
