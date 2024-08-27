@@ -1,10 +1,10 @@
 addpath('gcr');
+addpath('test_cases');
 
 %% System to solve
 n = 1000;
-alpha = 0.99;
-A = gallery('tridiag', n,  0, 1, alpha); % Jordan block
-b = ones(n, 1);
+A = jordan_block(n);
+b = ones(size(A, 1), 1);
 
 %% To compute deflation spaces
 M = full(1/2*(A+A'));

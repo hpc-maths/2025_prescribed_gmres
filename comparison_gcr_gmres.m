@@ -1,4 +1,5 @@
 addpath('gcr');
+addpath('test_cases');
 
 %% System to solve
 A = convdiff(50, 0.01); % Convection diffusion problem

@@ -1,4 +1,5 @@
 addpath('gcr');
+addpath('test_cases');
 
 %% System to solve
 n = 100;
