@@ -34,43 +34,37 @@ end
 %% -------------- Minimized norm
 
 %% HL
-[x,flag,relres,iter,resvec] = gcr(A, b, [], tol, maxit, apply_H, []);
-
-norm_b = norm(b);
-norm_Hb = norm(apply_H(b));
+[~,~,~,~,~,relresvec] = gcr(A, b, [], tol, maxit, apply_H, []);
 
 figure; axes = gca; 
-semilogy(axes, 0:length(resvec)-1, resvec/norm_Hb, 'Marker', 'o');
+semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
 title(axes, "Minimized norm");
 ylabel(axes, 'Minimized norm');
 set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% HR
-[x,flag,relres,iter,resvec] = gcr(A, b, [], tol, maxit, [], apply_H);
+[~,~,~,~,~,relresvec] = gcr(A, b, [], tol, maxit, [], apply_H);
 
-semilogy(axes, 0:length(resvec)-1, resvec/norm_b, 'Marker', 'x');
+semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GCR - HL', 'GCR - HR');
 
 %% -------------- Non-preconditioned residual norm
 
 %% HL
-[x,flag,relres,iter,resvec] = gcr(A, b, [], tol, maxit, apply_H, [], 'res', '');
-
-norm_b = norm(b);
-norm_Hb = norm(apply_H(b));
+[~,~,~,~,~,relresvec] = gcr(A, b, [], tol, maxit, apply_H, [], 'res', '');
 
 figure; axes = gca; 
-semilogy(axes, 0:length(resvec)-1, resvec/norm_b, 'Marker', 'o');
+semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
 title(axes, "Residual norm");
 ylabel(axes, '||b-Ax||/||b||');
 set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% HR
-[x,flag,relres,iter,resvec] = gcr(A, b, [], tol, maxit, [], apply_H, 'res', '');
+[~,~,~,~,~,relresvec] = gcr(A, b, [], tol, maxit, [], apply_H, 'res', '');
 
-semilogy(axes, 0:length(resvec)-1, resvec/norm_b, 'Marker', 'x');
+semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GCR - HL', 'GCR - HR');
 
 
@@ -79,18 +73,18 @@ legend(axes, 'GCR - HL', 'GCR - HR');
 %% -------------- Preconditioned residual norm
 
 %% GCR - HL
-[x,flag,relres,iter,resvec] = gcr(A, b, [], tol, maxit, apply_H, [], 'res', 'l');
+[~,~,~,~,~,relresvec] = gcr(A, b, [], tol, maxit, apply_H, [], 'res', 'l');
 
 figure; axes = gca; 
-semilogy(axes, 0:length(resvec)-1, resvec/norm_Hb, 'Marker', 'o');
+semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
 title(axes, "Preconditioned residual norm");
 ylabel(axes, '||H(b-Ax)||/||Hb||');
 set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR - HR
-[x,flag,relres,iter,resvec] = gcr(A, b, [], tol, maxit, [], apply_H, 'res', 'r');
-semilogy(axes, 0:length(resvec)-1, resvec/norm_Hb, 'Marker', 'x');
+[~,~,~,~,~,relresvec] = gcr(A, b, [], tol, maxit, [], apply_H, 'res', 'r');
+semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GCR - HL', 'GCR - HR');
 
 
@@ -98,16 +92,19 @@ legend(axes, 'GCR - HL', 'GCR - HR');
 
 %% -------------- GMRES
 
+norm_b = norm(b);
+norm_Hb = norm(apply_H(b));
+
 %% GMRES - HL
-[x,flag,relres,iter,resvec] = gmres(A, b, [], tol, maxit, apply_H, []);
+[~,~,~,~,absresvec] = gmres(A, b, [], tol, maxit, apply_H, []);
 figure; axes = gca; 
-semilogy(axes, 0:length(resvec)-1, resvec/norm_Hb, 'Marker', 'o');
+semilogy(axes, 0:length(absresvec)-1, absresvec/norm_Hb, 'Marker', 'o');
 title(axes, "GMRES");
 hold(axes, 'on');
 
 %% GMRES - HR
-[x,flag,relres,iter,resvec] = gmres(A, b, [], tol, maxit, [], apply_H);
-semilogy(axes, 0:length(resvec)-1, resvec/norm_Hb, 'Marker', 'x');
+[~,~,~,~,absresvec] = gmres(A, b, [], tol, maxit, [], apply_H);
+semilogy(axes, 0:length(absresvec)-1, absresvec/norm_Hb, 'Marker', 'x');
 legend(axes, 'GMRES - HL', 'GMRES - HR');
 
 

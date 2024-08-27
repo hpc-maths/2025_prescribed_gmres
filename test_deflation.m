@@ -21,7 +21,7 @@ HL = [];
 HR = [];
 
 %% GCR
-[x,flag,relres,iter,resvec] = gcr(A, b, restart, tol, maxit, HL, HR);
+[~,~,~,~,resvec] = gcr(A, b, restart, tol, maxit, HL, HR);
 
 norm_b = norm(b);
 
@@ -33,7 +33,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 %% Deflated GCR
 defl_space_dim = [10 50 100 200 300 400 500 600];
 lgd = cell(size(defl_space_dim, 2)+1, 1);
-lgd{1} = strcat('m = 0') ;
+lgd{1} = strcat('m = 0');
 for i = 1:size(defl_space_dim, 2)
     m = defl_space_dim(1, i);
 

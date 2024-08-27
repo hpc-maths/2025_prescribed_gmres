@@ -6,9 +6,9 @@ A = convdiff(50, 0.01); % Convection diffusion problem
 b = ones(size(A, 1), 1);
 
 %% Solver parameters
-restart = 5;
+restart = [];
 tol     = 1e-10;
-maxit   = [];
+maxit   = size(A, 1);
 
 % Preconditioners
 [L, U] = ilu(A);
@@ -25,7 +25,7 @@ norm_Hb = norm(HR\(HL\b));
 %% --------------- No preconditioner
 
 %% GMRES
-[x,flag,relres,iter,resvec] = gmres(A, b, restart, tol, maxit);
+[~,~,~,~,resvec] = gmres(A, b, restart, tol, maxit);
 
 figure; axes = gca; 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_b, 'Marker', 'o');
@@ -35,7 +35,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[x,flag,relres,iter,resvec] = gcr(A, b, restart, tol, maxit);
+[~,~,~,~,resvec] = gcr(A, b, restart, tol, maxit);
 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_b, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES','GCR');
@@ -43,7 +43,7 @@ legend('GMRES','GCR');
 %% -------------- Left preconditioner
 
 %% GMRES
-[x,flag,relres,iter,resvec] = gmres(A, b, restart, tol, maxit, HL, []);
+[~,~,~,~,resvec] = gmres(A, b, restart, tol, maxit, HL, []);
 
 figure; axes = gca;
 semilogy(axes, 0:length(resvec)-1, resvec/norm_HLb, 'Marker', 'o');
@@ -53,7 +53,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[x,flag,relres,iter,resvec] = gcr(A, b, restart, tol, maxit, HL, []);
+[~,~,~,~,resvec] = gcr(A, b, restart, tol, maxit, HL, []);
 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_HLb, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES','GCR');
@@ -62,7 +62,7 @@ legend('GMRES','GCR');
 %% -------------- Right preconditioner
 
 %% GMRES
-[x,flag,relres,iter,resvec] = gmres(A, b, restart, tol, maxit, [], HR);
+[~,~,~,~,resvec] = gmres(A, b, restart, tol, maxit, [], HR);
 
 figure; axes = gca;
 semilogy(axes, 0:length(resvec)-1, resvec/norm_HRb, 'Marker', 'o');
@@ -72,7 +72,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[x,flag,relres,iter,resvec] = gcr(A, b, restart, tol, maxit, [], HR, 'res', 'r'); % Since gmres includes the right prec in the residual, we do it too
+[~,~,~,~,resvec] = gcr(A, b, restart, tol, maxit, [], HR, 'res', 'r'); % Since gmres includes the right prec in the residual, we do it too
 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_HRb, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES','GCR');
@@ -81,7 +81,7 @@ legend('GMRES','GCR');
 %% -------------- Left-right preconditioners
 
 %% GMRES
-[x,flag,relres,iter,resvec] = gmres(A, b, restart, tol, maxit, HL, HR);
+[~,~,~,~,resvec] = gmres(A, b, restart, tol, maxit, HL, HR);
 
 figure; axes = gca;
 semilogy(axes, 0:length(resvec)-1, resvec/norm_Hb, 'Marker', 'o');
@@ -91,7 +91,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[x,flag,relres,iter,resvec] = gcr(A, b, restart, tol, maxit, HL, HR, 'res', 'lr'); % Since gmres includes the right prec in the residual, we do it too
+[~,~,~,~,resvec] = gcr(A, b, restart, tol, maxit, HL, HR, 'res', 'lr'); % Since gmres includes the right prec in the residual, we do it too
 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_Hb, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES','GCR');
