@@ -1,4 +1,4 @@
-function [x, flag, relres, iter, absresvec, relresvec] = gcr(A, b, restart, tol, maxit, HL, HR, varargin)
+function [x, flag, relres, iter, absresvec, relresvec, xvec] = gcr(A, b, restart, tol, maxit, HL, HR, varargin)
 %GCR   Generalized Conjugate Residual Method.
 %   X = GCR(A,B) attempts to solve the system of linear equations A*X = B
 %   for X. The N-by-N coefficient matrix A must be square and the right
@@ -78,6 +78,9 @@ function [x, flag, relres, iter, absresvec, relresvec] = gcr(A, b, restart, tol,
 %   convergence criterion.
 %   See argument 'res' for detail on how RELRESVEC is computed according
 %   to the presence of preconditioners and weighted norm.
+%
+%   [X,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC,XVEC] = GCR(A,B,...) also 
+%   returns the successive approximate solutions.
 
     %% Argument processing
 
@@ -146,7 +149,7 @@ function [x, flag, relres, iter, absresvec, relresvec] = gcr(A, b, restart, tol,
 
     if ~with_deflation
         % If no deflation space, then we apply the regular GCR algorithm
-        [x, flag, relres, iter, absresvec, relresvec] = wp_gcr(A, b, restart, tol, maxit, HL, HR, varargin{:});
+        [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, restart, tol, maxit, HL, HR, varargin{:});
     else
         % Initializations
         AZ = A*Z;
@@ -161,7 +164,7 @@ function [x, flag, relres, iter, absresvec, relresvec] = gcr(A, b, restart, tol,
         PDb = apply_PD(b);
     
         % Solve deflated system with GCR
-        [x, flag, relres, iter, absresvec, relresvec] = wp_gcr(apply_PDA, PDb, restart, tol, maxit, HL, HR, varargin{:});
+        [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(apply_PDA, PDb, restart, tol, maxit, HL, HR, varargin{:});
     
         % x = QD*x + (I-QD)x
         x = apply_QD(x) + Z*solve_YtAZ(Y'*b);
@@ -175,7 +178,7 @@ end
 %     Weighted Preconditioned GCR      %
 %           (no deflation)             %
 %  ----------------------------------  %
-function [x, flag, relres, iter, absresvec, relresvec] = wp_gcr(A, b, restart, tol, maxit, HL, HR, varargin)
+function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, restart, tol, maxit, HL, HR, varargin)
 
     %% Argument processing
 
@@ -321,6 +324,11 @@ function [x, flag, relres, iter, absresvec, relresvec] = wp_gcr(A, b, restart, t
     absresvec = zeros(maxit+1, 1); % absolute
     relresvec = zeros(maxit+1, 1); % relative
 
+    % Memory allocation for the successive solutions
+    if nargout > 6
+        xvec = zeros(n, maxit+1);
+    end
+
     % Memory allocation to hold vectors
     p     = zeros(n, restart); % p_i  (research direction)
     Ap    = zeros(n, restart); % A*p_i
@@ -357,6 +365,10 @@ function [x, flag, relres, iter, absresvec, relresvec] = wp_gcr(A, b, restart, t
         relres = absres/norm_Hb_W;
         absresvec((outer-1)*restart + 1) = absres;
         relresvec((outer-1)*restart + 1) = relres;
+
+        if nargout > 6
+            xvec(:, (outer-1)*restart + 1) = x;
+        end
 
         if (relres < tol)
             flag = FLAG_CONVERGENCE;
@@ -398,6 +410,10 @@ function [x, flag, relres, iter, absresvec, relresvec] = wp_gcr(A, b, restart, t
             relres = absres/norm_Hb_W;
             absresvec((outer-1)*restart + i+1) = absres;
             relresvec((outer-1)*restart + i+1) = relres;
+
+            if nargout > 6
+                xvec(:, (outer-1)*restart + i+1) = x;
+            end
     
             if (relres < tol)
                 flag = FLAG_CONVERGENCE;
@@ -426,6 +442,9 @@ function [x, flag, relres, iter, absresvec, relresvec] = wp_gcr(A, b, restart, t
     % Remove unused space
     absresvec = absresvec(1:iter+1);
     relresvec = relresvec(1:iter+1);
+    if nargout > 6
+        xvec = xvec(:, 1:iter+1);
+    end
 
     if flag == FLAG_DIVERGENCE
         warning('GCR: the given tolerance could not be reached.');
