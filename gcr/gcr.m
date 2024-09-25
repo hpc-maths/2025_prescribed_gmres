@@ -58,7 +58,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = gcr(A, b, restart
 %    0 GCR converged to the desired tolerance TOL within MAXIT iterations.
 %    1 GCR iterated MAXIT times but did not converge.
 %    2 preconditioner HL or HR was ill-conditioned.
-%    3 a breakdown occured.
+%    3 a breakdown occurred.
 %
 %   [X,FLAG,RELRES] = GCR(A,B,...) also returns the relative residual
 %   NORM(B-A*X)/NORM(B). If FLAG is 0, then RELRES <= TOL. Note that with
@@ -202,9 +202,9 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
     end
     if nargin < 5 || isempty(maxit)
         if isempty(restart)
-            maxit = min(n, 10);
+            maxit = n;
         else
-            maxit = min(ceil(n/restart),10);
+            maxit = ceil(n/restart);
         end
     end
     if isempty(restart)
@@ -253,9 +253,12 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
     W = [];
     x0 = [];
 
-    L_prec_res   = 1;
-    R_prec_res   = 0;
-    weighted_res = 1;
+    L_prec_res    = 1;
+    R_prec_res    = 0;
+    weighted_res  = 1;
+    orthog_algo   = 'gs'; % Gram-Schmidt
+    orthog_steps  = 1;
+    breakdown_tol = 1e-12;
 
     i = 1;
     while i < length(varargin)
@@ -269,8 +272,14 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
             weighted_res = ~isempty(strfind(varargin{i+1}, 'w'));
         elseif strcmp(varargin{i}, 'defl')
             i = i+1;
+        elseif strcmp(varargin{i}, 'orthog_algo')
+            orthog_algo = varargin{i+1};
+        elseif strcmp(varargin{i}, 'orthog_steps')
+            orthog_steps = varargin{i+1};
+        elseif strcmp(varargin{i}, 'bkdwn_tol')
+            breakdown_tol = varargin{i+1};
         else
-            error('Unknown option');
+            error(['GCR: unknown option ' varargin{i}]);
         end
         i = i+2;
     end
@@ -384,11 +393,14 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
             iter = iter+1;
     
             % Step length in the research direction
-            alpha = herm_prod(HL_r, HL_Ap(:,i)) / herm_prod(HL_Ap(:,i), HL_Ap(:,i));
+            delta = herm_prod(HL_r, HL_Ap(:,i));
+            gamma = herm_prod(HL_Ap(:,i), HL_Ap(:,i));
+            alpha = delta / gamma;
 
-            if abs(alpha) < 1e-12
-                warning('GCR: breakdown.');
+            if abs(delta) < breakdown_tol
+                warning(['GCR: breakdown occurred at iteration ' num2str(iter) ' with delta=' num2str(delta) ' (< ' num2str(breakdown_tol) ')']);
                 flag = FLAG_BREAKDOWN;
+                iter = iter-1;
                 break;
             end
     
@@ -424,13 +436,22 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
             end
 
             % Orthogonalization of z against the p_i's
-            HL_Az = apply_HL(apply_A(z));
             p(:,i+1) = z;
-            for j=1:i
-                beta = herm_prod(HL_Az, HL_Ap(:,j)) / herm_prod(HL_Ap(:,j), HL_Ap(:,j));
-                p(:,i+1) = p(:,i+1) - beta*p(:,j);
+            for os=1:orthog_steps
+                if strcmp(orthog_algo, 'gs') % Gram-Schmidt
+                    HL_Az = apply_HL(apply_A(p(:,i+1)));
+                    for j=1:i
+                        beta = herm_prod(HL_Az, HL_Ap(:,j)) / herm_prod(HL_Ap(:,j), HL_Ap(:,j));
+                        p(:,i+1) = p(:,i+1) - beta*p(:,j);
+                    end
+                elseif strcmp(orthog_algo, 'mgs') % Modified Gram-Schmidt
+                    for j=1:i
+                        beta = herm_prod(apply_HL(apply_A(p(:,i+1))), HL_Ap(:,j)) / herm_prod(HL_Ap(:,j), HL_Ap(:,j));
+                        p(:,i+1) = p(:,i+1) - beta*p(:,j);
+                    end
+                end
+                p(:,i+1)     = p(:,i+1)/norm(p(:,i+1)); % normalization to reduce the effects of round-off
             end
-            p(:,i+1)     = p(:,i+1)/norm(p(:,i+1)); % normalization to reduce the effects of round-off
             Ap(:,i+1)    = apply_A(p(:,i+1));
             HL_Ap(:,i+1) = apply_HL(Ap(:,i+1));
         end
@@ -447,7 +468,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
     end
 
     if flag == FLAG_DIVERGENCE
-        warning('GCR: the given tolerance could not be reached.');
+        warning(['GCR: the given tolerance could not be reached (maxit=' num2str(maxit) ').']);
     end
 end
 
