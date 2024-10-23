@@ -5,7 +5,7 @@ close all
 
 %% Problem construction
 n = 100;
-pb = 5;
+pb = 9;
 if pb == 1
     DH = diag(rand(n, 1));
     DH(1,1) = 10^8;
@@ -77,6 +77,53 @@ elseif pb == 5
 %     [VAH,~] = eig(A*inv(H));
 %     condest(VHA)
 %     condest(VAH)
+elseif pb == 6
+    load test_cases/gm_mcfe_765.mat
+    n = size(A, 1);
+    H = diag(diag(A));
+    apply_H = @(x) H\x;
+    b = rand(n, 1);
+    x = xec;
+elseif pb == 62
+    load test_cases/gm_mcfe_765.mat
+    n = size(A, 1);
+    H = diag(diag(A));
+    apply_H = @(x) H\x;
+    b = rand(n, 1);
+    x = xec;
+elseif pb == 7
+    D = diag(10.^linspace(1, 6, n));
+    M = diag(rand(n, 1)) + eye(n, n) + diag(rand(n-1, 1), 1) + diag(rand(n-1, 1), -1);
+    %M = D*M;
+    O = gallery('orthog', n);
+    %O(:,1) = 1e-3*O(:,1) + O(:,n);
+    %O(:,n) = O(:,n) + 1e-2*O(:,1);
+    B = D*M;
+    A = O*B*O';
+    H = diag(diag(A));
+    apply_H = @(x) M\x;
+    x = rand(n, 1);
+    b = A*x;
+elseif pb == 8
+    n = size(D1, 1);
+    D = D1;%diag(linspace(0.5, 10, n));
+    X = gallery('orthog', n);
+    X(:,2) = 1e-5*X(:,2) + X(:,n);
+    Y = gallery('orthog', n, 2);
+    Y(:,1) = 1e-4*Y(:,1) + Y(:,n);
+    A = X*D*inv(Y);
+    H = Y*inv(X);
+    %apply_H = @(x) Y*(X\x);
+    apply_H = @(x) H*x;
+    x = rand(n, 1);
+    b = A*x;
+elseif pb == 9
+    alpha = 8;
+    A = gallery('tridiag', n, -alpha, alpha, -1/alpha);
+    H = tril(A);
+    apply_H = @(x) H\x;
+    x = rand(n, 1);
+    b = A*x;
 end
 
 %% Solver parameters

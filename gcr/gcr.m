@@ -126,7 +126,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = gcr(A, b, restart
     
         n = size(A, 1);
         if size(A, 2) ~= n
-            error('CGR: A must be square.');
+            error('GCR: A must be square.');
         end
         if isempty(Y) || isempty(Z)
             error('GCR: None or both deflation spaces Y and Z must be set.');
@@ -135,13 +135,13 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = gcr(A, b, restart
             error('GCR: The deflation spaces Y and Z must have the same sizes.');
         end
         if size(Y, 1) ~= n
-            error('CGR: The deflation spaces Y and Z must have the same numbers of rows as A.');
+            error('GCR: The deflation spaces Y and Z must have the same numbers of rows as A.');
         end
         if size(Y, 2) > n
-            error('CGR: The deflation spaces Y and Z must have lower or equal number of columns than A.');
+            error('GCR: The deflation spaces Y and Z must have lower or equal number of columns than A.');
         end
         if size(b, 1) ~= n
-            error('CGR: The right-hand side b must have the same number of rows than A.');
+            error('GCR: The right-hand side b must have the same number of rows than A.');
         end
     end
 
@@ -189,9 +189,9 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
     n = size(b, 1);
     if ~isa(A, 'function_handle')
         if size(A, 1) ~= size(A, 2)
-            error('CGR: A must be square.');
+            error('GCR: A must be square.');
         elseif size(A, 1) ~= n
-            error('CGR: The right-hand side b must have the same number of rows than A.');
+            error('GCR: The right-hand side b must have the same number of rows than A.');
         end
     end
     if nargin < 3
@@ -219,7 +219,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
     end
     if ~isa(HL, 'function_handle')
         if ~all(size(HL) == size(A))
-            error('CGR: The left preconditioner HL must have the same size as the matrix A.');
+            error('GCR: The left preconditioner HL must have the same size as the matrix A.');
         end
     end
 
@@ -228,7 +228,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
     end
     if ~isa(HR, 'function_handle')
         if ~all(size(HR) == size(A))
-            error('CGR: The right preconditioner HR must have the same size as the matrix A.');
+            error('GCR: The right preconditioner HR must have the same size as the matrix A.');
         end
     end
 
@@ -450,7 +450,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
                         p(:,i+1) = p(:,i+1) - beta*p(:,j);
                     end
                 end
-                p(:,i+1)     = p(:,i+1)/norm(p(:,i+1)); % normalization to reduce the effects of round-off
+                p(:,i+1) = p(:,i+1)/norm(p(:,i+1)); % normalization to reduce the effects of round-off
             end
             Ap(:,i+1)    = apply_A(p(:,i+1));
             HL_Ap(:,i+1) = apply_HL(Ap(:,i+1));
