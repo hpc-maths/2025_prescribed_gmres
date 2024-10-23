@@ -5,7 +5,7 @@ close all
 
 %% Problem construction
 n = 100;
-pb = 9;
+pb = 6;
 if pb == 1
     DH = diag(rand(n, 1));
     DH(1,1) = 10^8;
@@ -127,7 +127,7 @@ elseif pb == 9
 end
 
 %% Solver parameters
-tol   = 1e-16;
+tol   = 1e-12;
 maxit = n;
 orthog_algo = 'mgs';
 orthog_steps = 2;
@@ -207,7 +207,7 @@ semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GCR - HL', 'GCR - HR');
 
 
-%% -------------- GMRES
+%% -------------- GMRES (matlab)
 
 norm_b = norm(b);
 norm_Hb = norm(apply_H(b));
@@ -216,7 +216,7 @@ norm_Hb = norm(apply_H(b));
 [~,~,~,~,absresvec] = gmres(A, b, [], tol, maxit, apply_H, []);
 figure; axes = gca; 
 semilogy(axes, 0:length(absresvec)-1, absresvec/norm_Hb, 'Marker', 'o');
-title(axes, "GMRES");
+title(axes, "GMRES (matlab)");
 set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
@@ -225,3 +225,21 @@ hold(axes, 'on');
 semilogy(axes, 0:length(absresvec)-1, absresvec/norm_Hb, 'Marker', 'x');
 legend(axes, 'GMRES - HL', 'GMRES - HR');
 
+
+%% -------------- GMRES (custom)
+
+norm_b = norm(b);
+norm_Hb = norm(apply_H(b));
+
+%% GMRES - HL
+[~,~,~,~,absresvec] = gmres4r(A, b, [], tol, maxit, apply_H, []);
+figure; axes = gca; 
+semilogy(axes, 0:length(absresvec)-1, absresvec/norm_Hb, 'Marker', 'o');
+title(axes, "GMRES (custom)");
+set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
+hold(axes, 'on');
+
+%% GMRES - HR
+[~,~,~,~,absresvec] = gmres4r(A, b, [], tol, maxit, [], apply_H);
+semilogy(axes, 0:length(absresvec)-1, absresvec/norm_Hb, 'Marker', 'x');
+legend(axes, 'GMRES - HL', 'GMRES - HR');

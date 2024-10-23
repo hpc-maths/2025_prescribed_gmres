@@ -4,12 +4,12 @@ addpath('test_cases');
 close all
 
 %% System to solve
-A = convdiff(4, 0.01); % Convection diffusion problem
+A = convdiff(20, 0.01); % Convection diffusion problem
 b = ones(size(A, 1), 1);
 
 %% Solver parameters
 restart = [];
-tol     = 1e-10;
+tol     = 1e-12;
 maxit   = size(A, 1);
 
 % Preconditioners
@@ -88,7 +88,7 @@ legend('matlab','custom');
 figure; axes = gca;
 semilogy(axes, 0:length(resvec)-1, resvec/norm_Hb, 'Marker', 'o');
 title(axes, 'Left-right preconditioners');
-ylabel(axes, '||H(b-Ax)||/||H b||');
+ylabel(axes, '||HL(b-Ax)||/||HL b||');
 set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 

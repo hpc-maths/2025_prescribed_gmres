@@ -355,9 +355,15 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
         % Residual (except on the first iteration)
         if outer > 1
             r = b - apply_A(x);
+
+            % Empty the vectors, just to be safe
+            % (can removed for performance)
+            v(:,:)    = 0;
+            Av(:,:)   = 0;
+            M_Av(:,:) = 0;
+            H(:,:)    = 0;
         end
 
-        norm_r0 = norm(r);
 
         % Apply preconditioners
         ML_r = apply_ML(r);
@@ -368,8 +374,12 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             break;
         end
 
+        norm_z = norm_W(z);
+        beta = norm_z;
+
         % Compute residual norm and check convergence
-        absres = residual_norm(r, ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);
+        %absres = residual_norm(r, ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);
+        absres = norm_z;
         relres = absres/norm_Mb_W;
         absresvec((outer-1)*restart + 1) = absres;
         relresvec((outer-1)*restart + 1) = relres;
@@ -383,10 +393,9 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             break;
         end
 
-
         e1 = eye(restart+1, 1);
 
-        v(:,1)    = z/norm(z); % normalization to reduce the effects of round-off
+        v(:,1)    = z/norm_z; % normalization to reduce the effects of round-off
         Av(:,1)   = apply_A(v(:,1));
         M_Av(:,1) = apply_M(Av(:,1));
 
@@ -397,74 +406,59 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             % Arnoldi
             v(:,j+1) = M_Av(:,j);
             for i=1:j
-                H(i,j) = herm_prod(v(:,j+1), v(:,i)); % MGS
-                %H(i,j) = herm_prod(M_Av(:,j), v(:,i)); % GS
+                if strcmp(orthog_algo, 'gs') % Gram-Schmidt
+                    H(i,j) = herm_prod(M_Av(:,j), v(:,i));
+                elseif strcmp(orthog_algo, 'mgs') % Modified Gram-Schmidt
+                    H(i,j) = herm_prod(v(:,j+1), v(:,i));
+                end
                 v(:,j+1) = v(:,j+1) - H(i,j)*v(:,i);
             end
-            H(j+1,j) = norm(v(:,j+1));
-            v(:,j+1) = v(:,j+1)/H(j+1,j);
-
-            %v(:, 1:j+1)'*v(:, 1:j+1)
-
-%             [Q,R] = qr(H(1:j+1, 1:j));
-%             y = norm_r0 * R\(Q'*e1);
-            %[C,R] = qr(H(1:j+1, 1:j), e1(1:j+1, 1));
-            %y = norm_r0 * R\C;
-            %y = norm_r0 * fixed.qrMatrixSolve(H(1:j+1, 1:j), e1(1:j+1, 1));
-
-             HH = H(1:j+1, 1:j);
-             re1 = norm_r0 * e1(1:j+1);
-             %re1 = norm_r0 * eye(j+1,1);
-%             y = (HH'*HH)\(HH'*re1);
-%             y = HH\re1;
-%             y = H(1:j+1, 1:j)\(norm_r0 * e1(1:j+1, 1));
-
-            [Q,R] = qr(HH);
-            re2 = Q'*re1;
-            y = R(1:j,:)\re2(1:j);
-
-            norm_r2 = abs(re2(j+1))
+            H(j+1,j) = norm_W(v(:,j+1));
 
             % Minimization by QR factorization
-            y = H(1:j+1, 1:j)\(norm_r0 * e1(1:j+1));
+            [Q,R] = qr(H(1:j+1, 1:j));
+            g = Q'*(beta * e1(1:j+1));
+            y = R(1:j,:)\g(1:j); % Here, we need to discard the last row of R, which is 0
 
-            % Compute the solution
-            x = x0 + v(:, 1:j)*y;
+            % The (left-preconditioned) residual norm is obtained without actually computing the residual
+            norm_z = abs(g(j+1));
 
-            % Compute the residual (temporary)
-            %r = b-apply_A(x);
-            %norm(r)
-
-            r = b-apply_A(x);
-            norm(r)
-
-            ML_r = apply_ML(r);
+            % TO BE REMOVED (just to compare...)
+%             r = b-apply_A(x);
+%             z = apply_ML(r);
+%             disp([num2str(norm(z)) ' = ' num2str(norm_z)]);
     
-            % Compute residual norm and check convergence
-            absres = residual_norm(r, ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);
+            % Save residuals
+            %absres = residual_norm(r, ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);
+            absres = norm_z;
             relres = absres/norm_Mb_W;
             absresvec((outer-1)*restart + j+1) = absres;
             relresvec((outer-1)*restart + j+1) = relres;
 
-            if nargout > 6
-                xvec(:, (outer-1)*restart + j+1) = x;
-            end
-    
-            if (relres < tol)
-                flag = FLAG_CONVERGENCE;
-                break;
-            end
-            if j == restart
-                break;
+            % Check convergence and compute the solution if needed
+            if relres < tol || j == restart || nargout > 6
+                x = x0 + v(:, 1:j)*y;
+                if nargout > 6
+                    xvec(:, (outer-1)*restart + j+1) = x;
+                end
+
+                if relres < tol
+                    flag = FLAG_CONVERGENCE;
+                    break;
+                elseif j == restart
+                    x0 = x;
+                    break;
+                end
+
+                % TO BE REMOVED (should never go there)
+                if norm(b-apply_A(x)) < tol || H(j+1,j) < tol
+                    flag = FLAG_CONVERGENCE;
+                    break;
+                end
             end
 
-            if norm(b-apply_A(x)) < tol || H(j+1,j) < tol
-                flag = FLAG_CONVERGENCE;
-                break;
-            end
-
-            % prepare next it
-
+            % Prepare next iteration
+            v(:,j+1)    = v(:,j+1)/H(j+1,j);
             Av(:,j+1)   = apply_A(v(:,j+1));
             M_Av(:,j+1) = apply_M(Av(:,j+1));
 
