@@ -255,7 +255,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     L_prec_res    = 1;
     R_prec_res    = 0;
     weighted_res  = 1;
-    orthog_algo   = 'gs'; % Gram-Schmidt
+    orthog_algo   = 'mgs'; % Gram-Schmidt
     orthog_steps  = 1;
 
     j = 1;
@@ -336,10 +336,9 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     end
 
     % Memory allocation to hold vectors
-    v    = zeros(n, restart); % v_i  (Krylov space orthonormal basis)
-    Av   = zeros(n, restart); % A*v_i
-    M_Av = zeros(n, restart); % M*A*v_i
-    H    = zeros(restart+1, restart+1); % Hessenberg matrix
+    v  = zeros(n, restart); % v_i  (Krylov space orthonormal basis)
+    Av = zeros(n, restart); % ML*A*MR * v_i
+    H  = zeros(restart+1, restart+1); % Hessenberg matrix
 
     %% Iterations
 
@@ -352,22 +351,18 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
 
     for outer=1:maxouter % if no restart, maxouter = 1
 
-        % Residual (except on the first iteration)
         if outer > 1
+            % Compute initial residual (except on the first iteration)
             r = b - apply_A(x);
 
-            % Empty the vectors, just to be safe
-            % (can removed for performance)
-            v(:,:)    = 0;
-            Av(:,:)   = 0;
-            M_Av(:,:) = 0;
-            H(:,:)    = 0;
+            % Empty the vectors, just to be safe (can removed for performance)
+            v(:,:)  = 0;
+            Av(:,:) = 0;
+            H(:,:)  = 0;
         end
 
-
-        % Apply preconditioners
-        ML_r = apply_ML(r);
-        z = apply_MR(ML_r);
+        % Apply left preconditioner
+        z = apply_ML(r);
         if ~all(isfinite(z))
             warning('GMRES4R: issue detected after applying the preconditioner.');
             flag = FLAG_PREC_ISSUE;
@@ -378,7 +373,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
         beta = norm_z;
 
         % Compute residual norm and check convergence
-        %absres = residual_norm(r, ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);
+        %absres = residual_norm(ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);
         absres = norm_z;
         relres = absres/norm_Mb_W;
         absresvec((outer-1)*restart + 1) = absres;
@@ -395,19 +390,18 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
 
         e1 = eye(restart+1, 1);
 
-        v(:,1)    = z/norm_z; % normalization to reduce the effects of round-off
-        Av(:,1)   = apply_A(v(:,1));
-        M_Av(:,1) = apply_M(Av(:,1));
+        v(:,1)  = z/norm_z;
+        Av(:,1) = apply_ML(apply_A(apply_MR(v(:,1))));
 
         for j=1:restart % if no restart, restart = maxit
     
             iter = iter+1;
             
             % Arnoldi
-            v(:,j+1) = M_Av(:,j);
+            v(:,j+1) = Av(:,j);
             for i=1:j
                 if strcmp(orthog_algo, 'gs') % Gram-Schmidt
-                    H(i,j) = herm_prod(M_Av(:,j), v(:,i));
+                    H(i,j) = herm_prod(Av(:,j), v(:,i));
                 elseif strcmp(orthog_algo, 'mgs') % Modified Gram-Schmidt
                     H(i,j) = herm_prod(v(:,j+1), v(:,i));
                 end
@@ -421,7 +415,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             y = R(1:j,:)\g(1:j); % Here, we need to discard the last row of R, which is 0
 
             % The (left-preconditioned) residual norm is obtained without actually computing the residual
-            norm_z = abs(g(j+1));
+            norm_z = abs(g(j+1)); % TODO: modify for W-norm?
 
             % TO BE REMOVED (just to compare...)
 %             r = b-apply_A(x);
@@ -429,7 +423,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
 %             disp([num2str(norm(z)) ' = ' num2str(norm_z)]);
     
             % Save residuals
-            %absres = residual_norm(r, ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);
+            %absres = residual_norm(ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);
             absres = norm_z;
             relres = absres/norm_Mb_W;
             absresvec((outer-1)*restart + j+1) = absres;
@@ -437,7 +431,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
 
             % Check convergence and compute the solution if needed
             if relres < tol || j == restart || nargout > 6
-                x = x0 + v(:, 1:j)*y;
+                x = x0 + apply_MR(v(:, 1:j)*y);
                 if nargout > 6
                     xvec(:, (outer-1)*restart + j+1) = x;
                 end
@@ -458,11 +452,10 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             end
 
             % Prepare next iteration
-            v(:,j+1)    = v(:,j+1)/H(j+1,j);
-            Av(:,j+1)   = apply_A(v(:,j+1));
-            M_Av(:,j+1) = apply_M(Av(:,j+1));
+            v(:,j+1)  = v(:,j+1)/H(j+1,j);
+            Av(:,j+1) = apply_ML(apply_A(apply_MR(v(:,j+1))));
 
-            if ~all(isfinite(M_Av(:,j+1)))
+            if ~all(isfinite(Av(:,j+1)))
                 warning('GMRES4R: issue detected after applying the preconditioner.');
                 flag = FLAG_PREC_ISSUE;
                 break;
@@ -487,7 +480,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
 end
 
 
-function absres = residual_norm(r, ML_r, H_r, apply_MR, apply_res_norm, L_prec_res, R_prec_res)
+function absres = residual_norm(ML_r, H_r, apply_MR, apply_res_norm, L_prec_res, R_prec_res)
     if L_prec_res && ~R_prec_res
         absres = apply_res_norm(ML_r);        % ||ML r||
     elseif L_prec_res && R_prec_res

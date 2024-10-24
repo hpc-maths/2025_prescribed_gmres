@@ -4,7 +4,7 @@ addpath('test_cases');
 close all
 
 %% System to solve
-A = convdiff(20, 0.01); % Convection diffusion problem
+A = convdiff(50, 0.01); % Convection diffusion problem
 b = ones(size(A, 1), 1);
 
 %% Solver parameters
