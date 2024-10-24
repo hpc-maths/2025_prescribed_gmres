@@ -1,6 +1,8 @@
 addpath('gcr');
 addpath('test_cases');
 
+close all;
+
 %% System to solve
 n = 1000;
 A = jordan_block(n);
@@ -42,6 +44,32 @@ for i = 1:size(defl_space_dim, 2)
     Y = A*Z;
     
     [x,flag,relres,iter,resvec] = gcr(A, b, restart, tol, maxit, HL, HR, 'defl', Y, Z);
+    
+    semilogy(axes, 0:length(resvec)-1, resvec/norm_b);
+    lgd{i+1} = strcat('m = ', num2str(m));
+end
+legend(axes, lgd);
+
+%% GMRES
+[~,~,~,~,resvec] = gmres4r(A, b, restart, tol, maxit, HL, HR);
+
+figure; axes = gca;
+semilogy(axes, 0:length(resvec)-1, resvec/norm_b);
+hold(axes, 'on');
+set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
+
+%% Deflated GMRES
+defl_space_dim = [10 50 100 200 300 400 500 600];
+lgd = cell(size(defl_space_dim, 2)+1, 1);
+lgd{1} = strcat('m = 0');
+for i = 1:size(defl_space_dim, 2)
+    m = defl_space_dim(1, i);
+
+    % Deflation space of dimension m
+    Z = [real(VNM(:,1:2:m)), imag(VNM(:,1:2:m))];
+    Y = A*Z;
+    
+    [x,flag,relres,iter,resvec] = gmres4r(A, b, restart, tol, maxit, HL, HR, 'defl', Y, Z);
     
     semilogy(axes, 0:length(resvec)-1, resvec/norm_b);
     lgd{i+1} = strcat('m = ', num2str(m));

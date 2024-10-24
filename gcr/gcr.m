@@ -320,7 +320,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
 
     %% Initializations
 
-    norm_Hb_W = compute_b_norm(b);
+    norm_HL_b_W = compute_b_norm(b);
 
     x = x0;
     if norm(x) == 0
@@ -371,7 +371,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
 
         % Compute residual norm and check convergence
         absres = residual_norm(r, HL_r, z, apply_HR, apply_res_norm, L_prec_res, R_prec_res);
-        relres = absres/norm_Hb_W;
+        relres = absres/norm_HL_b_W;
         absresvec((outer-1)*restart + 1) = absres;
         relresvec((outer-1)*restart + 1) = relres;
 
@@ -419,7 +419,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
     
             % Compute residual norm and check convergence
             absres = residual_norm(r, HL_r, z, apply_HR, apply_res_norm, L_prec_res, R_prec_res);
-            relres = absres/norm_Hb_W;
+            relres = absres/norm_HL_b_W;
             absresvec((outer-1)*restart + i+1) = absres;
             relresvec((outer-1)*restart + i+1) = relres;
 

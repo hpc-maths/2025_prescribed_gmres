@@ -316,8 +316,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
 
     %% Initializations
 
-    norm_Mb_W = compute_b_norm(b);
-
+    norm_ML_b_W = compute_b_norm(b);
 
     x = x0;
     if norm(x) == 0
@@ -355,7 +354,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             % Compute initial residual (except on the first iteration)
             r = b - apply_A(x);
 
-            % Empty the vectors, just to be safe (can removed for performance)
+            % Empty vectors and matrices, just to be safe
             v(:,:)  = 0;
             Av(:,:) = 0;
             H(:,:)  = 0;
@@ -375,7 +374,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
         % Compute residual norm and check convergence
         %absres = residual_norm(ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);
         absres = norm_z;
-        relres = absres/norm_Mb_W;
+        relres = absres/norm_ML_b_W;
         absresvec((outer-1)*restart + 1) = absres;
         relresvec((outer-1)*restart + 1) = relres;
 
@@ -399,13 +398,21 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             
             % Arnoldi
             v(:,j+1) = Av(:,j);
-            for i=1:j
+            for os=1:orthog_steps
+                v_jp1 = v(:,j+1);
                 if strcmp(orthog_algo, 'gs') % Gram-Schmidt
-                    H(i,j) = herm_prod(Av(:,j), v(:,i));
+                    for i=1:j
+                        hp = herm_prod(v_jp1, v(:,i));
+                        v(:,j+1) = v(:,j+1) - hp*v(:,i);
+                        H(i,j) = H(i,j) + hp;
+                    end
                 elseif strcmp(orthog_algo, 'mgs') % Modified Gram-Schmidt
-                    H(i,j) = herm_prod(v(:,j+1), v(:,i));
+                    for i=1:j
+                        hp = herm_prod(v(:,j+1), v(:,i));
+                        v(:,j+1) = v(:,j+1) - hp*v(:,i);
+                        H(i,j) = H(i,j) + hp;
+                    end
                 end
-                v(:,j+1) = v(:,j+1) - H(i,j)*v(:,i);
             end
             H(j+1,j) = norm_W(v(:,j+1));
 
@@ -415,17 +422,20 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             y = R(1:j,:)\g(1:j); % Here, we need to discard the last row of R, which is 0
 
             % The (left-preconditioned) residual norm is obtained without actually computing the residual
-            norm_z = abs(g(j+1)); % TODO: modify for W-norm?
-
-            % TO BE REMOVED (just to compare...)
-%             r = b-apply_A(x);
-%             z = apply_ML(r);
-%             disp([num2str(norm(z)) ' = ' num2str(norm_z)]);
+            if isempty(W)
+                norm_z = abs(g(j+1));
+            elseif isa(W, 'function_handle')
+                g2 = zeros(n, 1);
+                g2(j+1) = g(j+1);
+                norm_z = sqrt(g2'*W(g2));
+            else
+                norm_z = sqrt(g(j+1)' * W(j+1,j+1) * g(j+1));
+            end
     
             % Save residuals
             %absres = residual_norm(ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);
             absres = norm_z;
-            relres = absres/norm_Mb_W;
+            relres = absres/norm_ML_b_W;
             absresvec((outer-1)*restart + j+1) = absres;
             relresvec((outer-1)*restart + j+1) = relres;
 
@@ -445,10 +455,10 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
                 end
 
                 % TO BE REMOVED (should never go there)
-                if norm(b-apply_A(x)) < tol || H(j+1,j) < tol
-                    flag = FLAG_CONVERGENCE;
-                    break;
-                end
+%                 if norm(b-apply_A(x)) < tol || H(j+1,j) < tol
+%                     flag = FLAG_CONVERGENCE;
+%                     break;
+%                 end
             end
 
             % Prepare next iteration

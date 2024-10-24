@@ -53,7 +53,7 @@ semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', '+');
 [~,~,~,~,~,relresvec] = gcr(A, b, [], tol, maxit, apply_H, [], 'orthog_algo', 'mgs', 'orthog_steps', 2);
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'square');
 
-%% -------------- GMRES
+%% -------------- GMRES (matlab)
 
 norm_b = norm(b);
 norm_Hb = norm(apply_H(b));
@@ -61,5 +61,43 @@ norm_Hb = norm(apply_H(b));
 %% GMRES - HL
 [~,~,~,~,absresvec] = gmres(A, b, [], tol, maxit, apply_H, []);
 semilogy(axes, 0:length(absresvec)-1, absresvec/norm_Hb, 'Marker', '*');
-legend(axes, 'GCR - GS', 'GCR - GS (2x)', 'GCR - MGS', 'GCR - MGS (2x)', 'GMRES');
+legend(axes, 'GCR - GS', 'GCR - GS (2x)', 'GCR - MGS', 'GCR - MGS (2x)', 'GMRES matlab');
+
+
+
+
+
+
+
+
+%% -------------- GMRES - Gram-Schmidt
+[~,~,~,~,~,relresvec] = gmres4r(A, b, [], tol, maxit, apply_H, [], 'orthog_algo', 'gs');
+
+figure; axes = gca; 
+semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
+ylabel(axes, 'Preconditioned residual');
+set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
+hold(axes, 'on');
+
+%% -------------- GMRES - Gram-Schmidt (2)
+[~,~,~,~,~,relresvec] = gmres4r(A, b, [], tol, maxit, apply_H, [], 'orthog_algo', 'gs', 'orthog_steps', 2);
+semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', '+');
+
+%% -------------- GMRES - Modified Gram-Schmidt
+[~,~,~,~,~,relresvec] = gmres4r(A, b, [], tol, maxit, apply_H, [], 'orthog_algo', 'mgs');
+semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', '+');
+
+%% -------------- GMRES - Modified Gram-Schmidt (2)
+[~,~,~,~,~,relresvec] = gmres4r(A, b, [], tol, maxit, apply_H, [], 'orthog_algo', 'mgs', 'orthog_steps', 2);
+semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'square');
+
+%% -------------- GMRES (matlab)
+
+norm_b = norm(b);
+norm_Hb = norm(apply_H(b));
+
+%% GMRES - HL
+[~,~,~,~,absresvec] = gmres(A, b, [], tol, maxit, apply_H, []);
+semilogy(axes, 0:length(absresvec)-1, absresvec/norm_Hb, 'Marker', '*');
+legend(axes, 'GMRES - GS', 'GMRES - GS (2x)', 'GMRES - MGS', 'GMRES - MGS (2x)', 'matlab');
 
