@@ -58,6 +58,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = gmres4r(A, b, res
 %    0 GMRES4R converged to the desired tolerance TOL within MAXIT iterations.
 %    1 GMRES4R iterated MAXIT times but did not converge.
 %    2 preconditioner ML or MR was ill-conditioned.
+%    3 a breakdown occurred.
 %
 %   [X,FLAG,RELRES] = GMRES4R(A,B,...) also returns the relative residual
 %   NORM(B-A*X)/NORM(B). If FLAG is 0, then RELRES <= TOL. Note that with
@@ -255,8 +256,9 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     L_prec_res    = 1;
     R_prec_res    = 0;
     weighted_res  = 1;
-    orthog_algo   = 'mgs'; % Gram-Schmidt
+    orthog_algo   = 'mgs'; % Modified Gram-Schmidt
     orthog_steps  = 1;
+    breakdown_tol = 1e-12;
 
     j = 1;
     while j < length(varargin)
@@ -274,6 +276,8 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             orthog_algo = varargin{j+1};
         elseif strcmp(varargin{j}, 'orthog_steps')
             orthog_steps = varargin{j+1};
+        elseif strcmp(varargin{i}, 'bkdwn_tol')
+            breakdown_tol = varargin{i+1};
         else
             error(['GMRES4R: unknown option ' varargin{j}]);
         end
@@ -344,6 +348,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     FLAG_CONVERGENCE = 0;
     FLAG_DIVERGENCE  = 1;
     FLAG_PREC_ISSUE  = 2;
+    FLAG_BREAKDOWN   = 3;
 
     iter = 0;
     flag = FLAG_DIVERGENCE;
@@ -417,6 +422,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             H(j+1,j) = norm_W(v(:,j+1));
 
             % Minimization by QR factorization
+            % TODO - The minimization is done in the Euclidean norm, not in the W-norm
             [Q,R] = qr(H(1:j+1, 1:j));
             g = Q'*(beta * e1(1:j+1));
             y = R(1:j,:)\g(1:j); % Here, we need to discard the last row of R, which is 0
@@ -440,7 +446,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             relresvec((outer-1)*restart + j+1) = relres;
 
             % Check convergence and compute the solution if needed
-            if relres < tol || j == restart || nargout > 6
+            if relres < tol || j == restart || H(j+1,j) < breakdown_tol || nargout > 6
                 x = x0 + apply_MR(v(:, 1:j)*y);
                 if nargout > 6
                     xvec(:, (outer-1)*restart + j+1) = x;
@@ -449,16 +455,14 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
                 if relres < tol
                     flag = FLAG_CONVERGENCE;
                     break;
+                elseif H(j+1,j) < breakdown_tol
+                    warning(['GMRES4R: breakdown occurred at iteration ' num2str(iter) ' with H(j+1,j)=' num2str(H(j+1,j)) ' (< ' num2str(breakdown_tol) ')']);
+                    flag = FLAG_BREAKDOWN;
+                    break;
                 elseif j == restart
                     x0 = x;
                     break;
                 end
-
-                % TO BE REMOVED (should never go there)
-%                 if norm(b-apply_A(x)) < tol || H(j+1,j) < tol
-%                     flag = FLAG_CONVERGENCE;
-%                     break;
-%                 end
             end
 
             % Prepare next iteration
@@ -477,6 +481,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             break;
         end
     end
+
     % Remove unused space
     absresvec = absresvec(1:iter+1);
     relresvec = relresvec(1:iter+1);
