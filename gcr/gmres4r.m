@@ -258,6 +258,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     weighted_res  = 1;
     orthog_algo   = 'mgs'; % Modified Gram-Schmidt
     orthog_steps  = 1;
+    QR_algo       = 'givens';
     breakdown_tol = 1e-12;
 
     j = 1;
@@ -329,19 +330,25 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
         r = b - apply_A(x);
     end
 
-    % Memory allocation for the successive residual norms
+    %% Memory allocation
+
+    % Successive residual norms
     absresvec = zeros(maxit+1, 1); % absolute
     relresvec = zeros(maxit+1, 1); % relative
 
-    % Memory allocation for the successive solutions
+    % Successive solutions
     if nargout > 6
         xvec = zeros(n, maxit+1);
     end
-
-    % Memory allocation to hold vectors
-    v  = zeros(n, restart); % v_i  (Krylov space orthonormal basis)
-    Av = zeros(n, restart); % ML*A*MR * v_i
-    H  = zeros(restart+1, restart+1); % Hessenberg matrix
+    
+    % Krylov space's orthonormal basis
+    v  = zeros(n, restart); % v_i
+    % ML*A*MR * v_i
+    Av = zeros(n, restart); 
+    % Hessenberg matrix
+    H  = zeros(restart+1, restart+1); 
+    %Qc = zeros(restart+1, restart+1); % Q in the factorization H=QR
+    %R = zeros(restart+1, restart);   % R in the factorization H=QR
 
     %% Iterations
 
@@ -392,8 +399,17 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             break;
         end
 
-        e1 = eye(restart+1, 1);
+        e1 = eye(restart+1, 1); % [1; 0; 0; 0; ...]
 
+        if strcmp(QR_algo, 'givens')
+            Q_T = speye(restart+1, restart+1);
+            R   = zeros(restart+1, restart);
+            g = beta * eye(restart+1, 1); % beta*e1
+            c = zeros(restart, restart); % cos in Givens rorations
+            s = zeros(restart, restart); % sin in Givens rorations
+        end
+
+        % Initialize Arnoldi process
         v(:,1)  = z/norm_z;
         Av(:,1) = apply_ML(apply_A(apply_MR(v(:,1))));
 
@@ -401,7 +417,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     
             iter = iter+1;
             
-            % Arnoldi
+            %% Othogonalization against the previous basis vectors
             v(:,j+1) = Av(:,j);
             for os=1:orthog_steps
                 v_jp1 = v(:,j+1);
@@ -419,13 +435,45 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
                     end
                 end
             end
-            H(j+1,j) = norm_W(v(:,j+1));
+            norm_v_jp1 = norm_W(v(:,j+1));
+            H(j+1,j) = norm_v_jp1;
 
-            % Minimization by QR factorization
-            % TODO - The minimization is done in the Euclidean norm, not in the W-norm
-            [Q,R] = qr(H(1:j+1, 1:j));
-            g = Q'*(beta * e1(1:j+1));
-            y = R(1:j,:)\g(1:j); % Here, we need to discard the last row of R, which is 0
+            %% Minimization by QR factorization
+            if strcmp(QR_algo, 'matlab')
+                [Q,R] = qr(H(1:j+1, 1:j));
+                g = Q'*(beta * e1(1:j+1));
+            elseif strcmp(QR_algo, 'givens')
+                % TODO - The minimization is done in the Euclidean norm, not in the W-norm
+
+%                 disp('New col in H');
+%                 disp(H(1:j+1,1:j));
+
+                % Apply all the previous rotation matrices to the new column
+                for i=1:j-1
+                    Qi_T = [c(i) s(i); -s(i) c(i)];
+                    H(i:i+1, j) = Qi_T*H(i:i+1, j);
+                end
+
+                % Computes the new rotation matrix
+                %       [ c s]
+                %       [-s c]
+                % that eliminates H(1:j+1, 1:j) from the Hessenberg matrix H,
+                % thus keeping the upper-triangular form Q^T*H = R
+
+                norm_h = sqrt(H(j,j)^2 + H(j+1,j)^2);
+                c(j) = H(j  ,j)/norm_h; % cos
+                s(j) = H(j+1,j)/norm_h; % sin
+                Qj_T = [c(j) s(j); -s(j) c(j)];
+
+                % Apply the rotation to the last column of H
+                H(j:j+1, j) = Qj_T*H(j:j+1, j);
+
+%                 disp('After rotation');
+%                 disp(H(1:j+1,1:j));
+
+                % Apply the rotation to the right-hand side
+                g(j:j+1) = Qj_T*g(j:j+1);
+            end
 
             % The (left-preconditioned) residual norm is obtained without actually computing the residual
             if isempty(W)
@@ -445,9 +493,22 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             absresvec((outer-1)*restart + j+1) = absres;
             relresvec((outer-1)*restart + j+1) = relres;
 
-            % Check convergence and compute the solution if needed
-            if relres < tol || j == restart || H(j+1,j) < breakdown_tol || nargout > 6
+            %% Check convergence and compute the solution if needed
+            if relres < tol || j == restart || norm_v_jp1 < breakdown_tol || nargout > 6
+
+                % Solution y of     min||    beta*e1 - Hy|| 
+                %                 = min||Q^T*beta*e1 - Ry|| because H=QR
+                %                 = min||    g       - Ry|| by definition of g
+                %                 = R\g
+                if strcmp(QR_algo, 'matlab')
+                    y = R(1:j, 1:j)\g(1:j); % Here, we need to discard the last row of R, which is 0
+                elseif strcmp(QR_algo, 'givens')
+                    y = H(1:j, 1:j)\g(1:j);
+                end
+
+                % Solution x of the system
                 x = x0 + apply_MR(v(:, 1:j)*y);
+                
                 if nargout > 6
                     xvec(:, (outer-1)*restart + j+1) = x;
                 end
@@ -455,7 +516,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
                 if relres < tol
                     flag = FLAG_CONVERGENCE;
                     break;
-                elseif H(j+1,j) < breakdown_tol
+                elseif norm_v_jp1 < breakdown_tol
                     warning(['GMRES4R: breakdown occurred at iteration ' num2str(iter) ' with H(j+1,j)=' num2str(H(j+1,j)) ' (< ' num2str(breakdown_tol) ')']);
                     flag = FLAG_BREAKDOWN;
                     break;
@@ -465,8 +526,8 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
                 end
             end
 
-            % Prepare next iteration
-            v(:,j+1)  = v(:,j+1)/H(j+1,j);
+            % Prepare next iteration of Arnoldi
+            v(:,j+1)  = v(:,j+1)/norm_v_jp1;
             Av(:,j+1) = apply_ML(apply_A(apply_MR(v(:,j+1))));
 
             if ~all(isfinite(Av(:,j+1)))

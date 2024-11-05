@@ -1,6 +1,8 @@
 addpath('gcr');
 addpath('test_cases');
 
+close all
+
 %% System to solve
 A = convdiff(50, 0.01); % Convection diffusion problem
 b = ones(size(A, 1), 1);
@@ -56,7 +58,7 @@ hold(axes, 'on');
 [~,~,~,~,resvec] = gcr(A, b, restart, tol, maxit, HL, []);
 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_HLb, 'Marker', 'x', 'LineStyle', '--');
-legend('GMRES','GCR');
+legend('GMRES (matlab)','GCR');
 
 
 %% -------------- Right preconditioner
@@ -75,7 +77,7 @@ hold(axes, 'on');
 [~,~,~,~,resvec] = gcr(A, b, restart, tol, maxit, [], HR, 'res', 'r'); % Since gmres includes the right prec in the residual, we do it too
 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_HRb, 'Marker', 'x', 'LineStyle', '--');
-legend('GMRES','GCR');
+legend('GMRES (matlab)','GCR');
 
 
 %% -------------- Left-right preconditioners
@@ -94,4 +96,4 @@ hold(axes, 'on');
 [~,~,~,~,resvec] = gcr(A, b, restart, tol, maxit, HL, HR, 'res', 'lr'); % Since gmres includes the right prec in the residual, we do it too
 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_Hb, 'Marker', 'x', 'LineStyle', '--');
-legend('GMRES','GCR');
+legend('GMRES (matlab)','GCR');
