@@ -352,11 +352,11 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     end
     
     % Krylov space's orthonormal basis
-    v  = zeros(n, restart); % v_i
+    v = zeros(n, restart); % v_i
     % ML*A*MR * v_i
     Av = zeros(n, restart); 
     % Hessenberg matrix / R in the factorization H=QR
-    H  = zeros(restart+1, restart+1);
+    H = zeros(restart+1, restart+1);
 
     if strcmp(QR_algo, 'givens')
         % Right-hand side of the minimization problem (initially, beta*e1)
@@ -466,8 +466,6 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
                 [Q,R] = qr(H(1:j+1, 1:j));
                 g(1:j+1) = Q' * beta_e1(1:j+1);
             elseif strcmp(QR_algo, 'givens')
-                % TODO - The minimization is done in the Euclidean norm, not in the W-norm
-
 %                 disp('New col in H');
 %                 disp(H(1:j+1,1:j));
 
@@ -478,7 +476,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
                      H(i:i+1, j) = Qi_T * H(i:i+1, j);
                 end
 
-                % Compute the new rotation matrix that eliminates H(1:j+1, 1:j) from the Hessenberg matrix H,
+                % Compute the new rotation matrix that eliminates H(j+1,j) from the Hessenberg matrix,
                 % thus keeping the upper-triangular form Q^T*H = R
                 norm_h = norm(H(j:j+1,j));
                 c(j) = H(j  ,j)/norm_h; % cos
@@ -488,6 +486,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
 
                 % Apply the rotation to the last column of H
                 H(j:j+1, j) = Qj_T * H(j:j+1, j);
+                % By construction of the rotation, now H(j+1,j)=0
 
 %                 disp('After rotation');
 %                 disp(H(1:j+1,1:j));
@@ -496,17 +495,9 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
                 g(j:j+1) = Qj_T * g(j:j+1);
             end
 
-            %% Residual computation
-            % The (left-preconditioned) residual norm is obtained without actually computing the residual
-            if isempty(W)
-                norm_z = abs(g(j+1));
-            elseif isa(W, 'function_handle')
-                g2 = zeros(n, 1);
-                g2(j+1) = g(j+1);
-                norm_z = sqrt(g2'*W(g2));
-            else
-                norm_z = sqrt(g(j+1)' * W(j+1,j+1) * g(j+1));
-            end
+            %% Residual
+            % The (left-preconditioned) residual norm is obtained without any computation
+            norm_z = abs(g(j+1));
     
             % Save residuals
             %absres = residual_norm(ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);

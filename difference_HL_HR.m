@@ -151,25 +151,25 @@ hold(axes, 'on');
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GCR - HL', 'GCR - HR');
 
-% %% -------------- Error
-% eL = zeros(1, size(xvecL, 2));
-% for i=1:size(xvecL, 2)
-%     eL(1,i) = norm(x - xvecL(:, i));
-% end
-% eR = zeros(1, size(xvecR, 2));
-% for i=1:size(xvecR, 2)
-%     eR(1,i) = norm(x - xvecR(:, i));
-% end
-% 
-% figure; axes = gca;
-% semilogy(axes, 0:length(eL)-1, eL, 'Marker', 'o');
-% title(axes, "Error");
-% ylabel(axes, '||e||_2');
-% set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
-% hold(axes, 'on');
-% semilogy(axes, 0:length(eR)-1, eR, 'Marker', 'x');
-% legend(axes, 'GCR - HL', 'GCR - HR');
-% 
+%% -------------- Error
+eL = zeros(1, size(xvecL, 2));
+for i=1:size(xvecL, 2)
+    eL(1,i) = norm(x - xvecL(:, i));
+end
+eR = zeros(1, size(xvecR, 2));
+for i=1:size(xvecR, 2)
+    eR(1,i) = norm(x - xvecR(:, i));
+end
+
+figure; axes = gca;
+semilogy(axes, 0:length(eL)-1, eL, 'Marker', 'o');
+title(axes, "Error");
+ylabel(axes, '||e||_2');
+set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
+hold(axes, 'on');
+semilogy(axes, 0:length(eR)-1, eR, 'Marker', 'x');
+legend(axes, 'GCR - HL', 'GCR - HR');
+
 % %% -------------- Non-preconditioned residual
 % 
 % %% HL
@@ -223,7 +223,7 @@ legend(axes, 'GCR - HL', 'GCR - HR');
 % %% GMRES - HR
 % [~,~,~,~,absresvec] = gmres(A, b, [], tol, maxit, [], apply_H);
 % semilogy(axes, 0:length(absresvec)-1, absresvec/norm_Hb, 'Marker', 'x');
-% legend(axes, 'GMRES - HL', 'GMRES - HR');
+% legend(axes, 'GMRES (matlab) - HL', 'GMRES (matlab) - HR');
 
 
 %% -------------- GMRES (custom)
@@ -237,6 +237,6 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GMRES - HR
-[~,~,~,~,~,relresvec] = gmres4r(A, b, [], tol, maxit, [], apply_H, 'orthog_algo', 'mgs');
+[~,~,~,~,~,relresvec] = gmres4r(A, b, [], tol, maxit, [], apply_H, 'orthog_algo', 'mgs', 'orthog_steps', 2);
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
-legend(axes, 'GMRES - HL', 'GMRES - HR');
+legend(axes, 'GMRES (custom) - HL', 'GMRES (custom) - HR');
