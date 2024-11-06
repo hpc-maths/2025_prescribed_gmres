@@ -1,4 +1,4 @@
-function [x, flag, relres, iter, absresvec, relresvec, xvec] = gmres4r(A, b, restart, tol, maxit, ML, MR, varargin)
+function [x, varargout] = gmres4r(A, b, restart, tol, maxit, ML, MR, varargin)
 %GMRES4R   Generalized Conjugate Residual Method.
 %   X = GMRES4R(A,B) attempts to solve the system of linear equations A*X = B
 %   for X. The N-by-N coefficient matrix A must be square and the right
@@ -149,7 +149,8 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = gmres4r(A, b, res
 
     if ~with_deflation
         % If no deflation space, then we apply the regular GMRES algorithm
-        [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, restart, tol, maxit, ML, MR, varargin{:});
+        %[x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, restart, tol, maxit, ML, MR, varargin{:});
+        [x, varargout{1:nargout-1}] = wp_gmres4r(A, b, restart, tol, maxit, ML, MR, varargin{:});
     else
         % Initializations
         AZ = A*Z;
@@ -164,7 +165,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = gmres4r(A, b, res
         PDb = apply_PD(b);
     
         % Solve deflated system with GMRES
-        [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(apply_PDA, PDb, restart, tol, maxit, ML, MR, varargin{:});
+        [x, varargout{1:nargout-1}] = wp_gmres4r(apply_PDA, PDb, restart, tol, maxit, ML, MR, varargin{:});
     
         % x = QD*x + (I-QD)x
         x = apply_QD(x) + Z*solve_YtAZ(Y'*b);
@@ -299,6 +300,11 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     if isempty(x0)
         x0 = zeros(n, 1);
     end
+    
+    % Output argument indexes
+    ARGOUT_ABSRESVEC = 5;
+    ARGOUT_RELRESVEC = 6;
+    ARGOUT_XVEC      = 7;
 
     %% How to compute the norm of b
     if weighted_res
@@ -333,11 +339,15 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     %% Memory allocation
 
     % Successive residual norms
-    absresvec = zeros(maxit+1, 1); % absolute
-    relresvec = zeros(maxit+1, 1); % relative
+    if nargout >= ARGOUT_ABSRESVEC
+        absresvec = zeros(maxit+1, 1); % absolute
+    end
+    if nargout >= ARGOUT_RELRESVEC
+        relresvec = zeros(maxit+1, 1); % relative
+    end
 
     % Successive solutions
-    if nargout > 6
+    if nargout >= ARGOUT_XVEC
         xvec = zeros(n, maxit+1);
     end
     
@@ -345,10 +355,19 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     v  = zeros(n, restart); % v_i
     % ML*A*MR * v_i
     Av = zeros(n, restart); 
-    % Hessenberg matrix
-    H  = zeros(restart+1, restart+1); 
-    %Qc = zeros(restart+1, restart+1); % Q in the factorization H=QR
-    %R = zeros(restart+1, restart);   % R in the factorization H=QR
+    % Hessenberg matrix / R in the factorization H=QR
+    H  = zeros(restart+1, restart+1);
+
+    if strcmp(QR_algo, 'givens')
+        % Right-hand side of the minimization problem (initially, beta*e1)
+        g = zeros(restart+1, 1);
+
+        c = zeros(restart, 1); % cos in Givens rotations
+        s = zeros(restart, 1); % sin in Givens rotations
+    elseif strcmp(QR_algo, 'matlab')
+        % Right-hand side of the minimization problem
+        beta_e1 = zeros(restart+1, 1);
+    end
 
     %% Iterations
 
@@ -370,6 +389,10 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             v(:,:)  = 0;
             Av(:,:) = 0;
             H(:,:)  = 0;
+            if strcmp(QR_algo, 'givens')
+                c(:) = 0;
+                s(:) = 0;
+            end
         end
 
         % Apply left preconditioner
@@ -387,10 +410,13 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
         %absres = residual_norm(ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);
         absres = norm_z;
         relres = absres/norm_ML_b_W;
-        absresvec((outer-1)*restart + 1) = absres;
-        relresvec((outer-1)*restart + 1) = relres;
-
-        if nargout > 6
+        if nargout >= ARGOUT_ABSRESVEC
+            absresvec((outer-1)*restart + 1) = absres;
+        end
+        if nargout >= ARGOUT_RELRESVEC
+            relresvec((outer-1)*restart + 1) = relres;
+        end
+        if nargout >= ARGOUT_XVEC
             xvec(:, (outer-1)*restart + 1) = x;
         end
 
@@ -399,14 +425,11 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             break;
         end
 
-        e1 = eye(restart+1, 1); % [1; 0; 0; 0; ...]
-
         if strcmp(QR_algo, 'givens')
-            Q_T = speye(restart+1, restart+1);
-            R   = zeros(restart+1, restart);
-            g = beta * eye(restart+1, 1); % beta*e1
-            c = zeros(restart, restart); % cos in Givens rorations
-            s = zeros(restart, restart); % sin in Givens rorations
+            g(:) = 0;
+            g(1) = beta; % g = beta*e1
+        elseif strcmp(QR_algo, 'matlab')
+            beta_e1(1) = beta;
         end
 
         % Initialize Arnoldi process
@@ -441,7 +464,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             %% Minimization by QR factorization
             if strcmp(QR_algo, 'matlab')
                 [Q,R] = qr(H(1:j+1, 1:j));
-                g = Q'*(beta * e1(1:j+1));
+                g(1:j+1) = Q' * beta_e1(1:j+1);
             elseif strcmp(QR_algo, 'givens')
                 % TODO - The minimization is done in the Euclidean norm, not in the W-norm
 
@@ -450,31 +473,30 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
 
                 % Apply all the previous rotation matrices to the new column
                 for i=1:j-1
-                    Qi_T = [c(i) s(i); -s(i) c(i)];
-                    H(i:i+1, j) = Qi_T*H(i:i+1, j);
+                     Qi_T = [ c(i) s(i) ; ...
+                             -s(i) c(i) ];
+                     H(i:i+1, j) = Qi_T * H(i:i+1, j);
                 end
 
-                % Computes the new rotation matrix
-                %       [ c s]
-                %       [-s c]
-                % that eliminates H(1:j+1, 1:j) from the Hessenberg matrix H,
+                % Compute the new rotation matrix that eliminates H(1:j+1, 1:j) from the Hessenberg matrix H,
                 % thus keeping the upper-triangular form Q^T*H = R
-
-                norm_h = sqrt(H(j,j)^2 + H(j+1,j)^2);
+                norm_h = norm(H(j:j+1,j));
                 c(j) = H(j  ,j)/norm_h; % cos
                 s(j) = H(j+1,j)/norm_h; % sin
-                Qj_T = [c(j) s(j); -s(j) c(j)];
+                Qj_T = [ c(j) s(j) ; ...
+                        -s(j) c(j) ];
 
                 % Apply the rotation to the last column of H
-                H(j:j+1, j) = Qj_T*H(j:j+1, j);
+                H(j:j+1, j) = Qj_T * H(j:j+1, j);
 
 %                 disp('After rotation');
 %                 disp(H(1:j+1,1:j));
 
                 % Apply the rotation to the right-hand side
-                g(j:j+1) = Qj_T*g(j:j+1);
+                g(j:j+1) = Qj_T * g(j:j+1);
             end
 
+            %% Residual computation
             % The (left-preconditioned) residual norm is obtained without actually computing the residual
             if isempty(W)
                 norm_z = abs(g(j+1));
@@ -490,11 +512,15 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             %absres = residual_norm(ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);
             absres = norm_z;
             relres = absres/norm_ML_b_W;
-            absresvec((outer-1)*restart + j+1) = absres;
-            relresvec((outer-1)*restart + j+1) = relres;
+            if nargout >= ARGOUT_ABSRESVEC
+                absresvec((outer-1)*restart + j+1) = absres;
+            end
+            if nargout >= ARGOUT_RELRESVEC
+                relresvec((outer-1)*restart + j+1) = relres;
+            end
 
             %% Check convergence and compute the solution if needed
-            if relres < tol || j == restart || norm_v_jp1 < breakdown_tol || nargout > 6
+            if relres < tol || j == restart || norm_v_jp1 < breakdown_tol || nargout >= ARGOUT_XVEC
 
                 % Solution y of     min||    beta*e1 - Hy|| 
                 %                 = min||Q^T*beta*e1 - Ry|| because H=QR
@@ -509,7 +535,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
                 % Solution x of the system
                 x = x0 + apply_MR(v(:, 1:j)*y);
                 
-                if nargout > 6
+                if nargout >= ARGOUT_XVEC
                     xvec(:, (outer-1)*restart + j+1) = x;
                 end
 
@@ -517,7 +543,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
                     flag = FLAG_CONVERGENCE;
                     break;
                 elseif norm_v_jp1 < breakdown_tol
-                    warning(['GMRES4R: breakdown occurred at iteration ' num2str(iter) ' with H(j+1,j)=' num2str(H(j+1,j)) ' (< ' num2str(breakdown_tol) ')']);
+                    warning(['GMRES4R: breakdown occurred at iteration ' num2str(iter) ' with H(j+1,j)=' num2str(norm_v_jp1) ' (< ' num2str(breakdown_tol) ')']);
                     flag = FLAG_BREAKDOWN;
                     break;
                 elseif j == restart
@@ -526,7 +552,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
                 end
             end
 
-            % Prepare next iteration of Arnoldi
+            %% Prepare next iteration of Arnoldi
             v(:,j+1)  = v(:,j+1)/norm_v_jp1;
             Av(:,j+1) = apply_ML(apply_A(apply_MR(v(:,j+1))));
 
@@ -543,10 +569,14 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
         end
     end
 
-    % Remove unused space
-    absresvec = absresvec(1:iter+1);
-    relresvec = relresvec(1:iter+1);
-    if nargout > 6
+    %% Remove unused space
+    if nargout >= ARGOUT_ABSRESVEC
+        absresvec = absresvec(1:iter+1);
+    end
+    if nargout >= ARGOUT_RELRESVEC
+        relresvec = relresvec(1:iter+1);
+    end
+    if nargout >= ARGOUT_XVEC
         xvec = xvec(:, 1:iter+1);
     end
 

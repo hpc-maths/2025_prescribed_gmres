@@ -1,4 +1,4 @@
-function [x, flag, relres, iter, absresvec, relresvec, xvec] = gcr(A, b, restart, tol, maxit, HL, HR, varargin)
+function [x, varargout] = gcr(A, b, restart, tol, maxit, HL, HR, varargin)
 %GCR   Generalized Conjugate Residual Method.
 %   X = GCR(A,B) attempts to solve the system of linear equations A*X = B
 %   for X. The N-by-N coefficient matrix A must be square and the right
@@ -149,7 +149,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = gcr(A, b, restart
 
     if ~with_deflation
         % If no deflation space, then we apply the regular GCR algorithm
-        [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, restart, tol, maxit, HL, HR, varargin{:});
+        [x, varargout{1:nargout-1}] = wp_gcr(A, b, restart, tol, maxit, HL, HR, varargin{:});
     else
         % Initializations
         AZ = A*Z;
@@ -164,7 +164,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = gcr(A, b, restart
         PDb = apply_PD(b);
     
         % Solve deflated system with GCR
-        [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(apply_PDA, PDb, restart, tol, maxit, HL, HR, varargin{:});
+        [x, varargout{1:nargout-1}] = wp_gcr(apply_PDA, PDb, restart, tol, maxit, HL, HR, varargin{:});
     
         % x = QD*x + (I-QD)x
         x = apply_QD(x) + Z*solve_YtAZ(Y'*b);
@@ -299,6 +299,11 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
         x0 = zeros(n, 1);
     end
 
+    % Output argument indexes
+    ARGOUT_ABSRESVEC = 5;
+    ARGOUT_RELRESVEC = 6;
+    ARGOUT_XVEC      = 7;
+
     %% How to compute the norm of b
     if weighted_res
         apply_res_norm = @(x) norm_W(x);
@@ -330,11 +335,15 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
     end
 
     % Memory allocation for the successive residual norms
-    absresvec = zeros(maxit+1, 1); % absolute
-    relresvec = zeros(maxit+1, 1); % relative
+    if nargout >= ARGOUT_ABSRESVEC
+        absresvec = zeros(maxit+1, 1); % absolute
+    end
+    if nargout >= ARGOUT_RELRESVEC
+        relresvec = zeros(maxit+1, 1); % relative
+    end
 
     % Memory allocation for the successive solutions
-    if nargout > 6
+    if nargout >= ARGOUT_XVEC
         xvec = zeros(n, maxit+1);
     end
 
@@ -372,10 +381,13 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
         % Compute residual norm and check convergence
         absres = residual_norm(r, HL_r, z, apply_HR, apply_res_norm, L_prec_res, R_prec_res);
         relres = absres/norm_HL_b_W;
-        absresvec((outer-1)*restart + 1) = absres;
-        relresvec((outer-1)*restart + 1) = relres;
-
-        if nargout > 6
+        if nargout >= ARGOUT_ABSRESVEC
+            absresvec((outer-1)*restart + 1) = absres;
+        end
+        if nargout >= ARGOUT_RELRESVEC
+            relresvec((outer-1)*restart + 1) = relres;
+        end
+        if nargout >= ARGOUT_XVEC
             xvec(:, (outer-1)*restart + 1) = x;
         end
 
@@ -420,10 +432,13 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
             % Compute residual norm and check convergence
             absres = residual_norm(r, HL_r, z, apply_HR, apply_res_norm, L_prec_res, R_prec_res);
             relres = absres/norm_HL_b_W;
-            absresvec((outer-1)*restart + i+1) = absres;
-            relresvec((outer-1)*restart + i+1) = relres;
-
-            if nargout > 6
+            if nargout >= ARGOUT_ABSRESVEC
+                absresvec((outer-1)*restart + i+1) = absres;
+            end
+            if nargout >= ARGOUT_RELRESVEC
+                relresvec((outer-1)*restart + i+1) = relres;
+            end
+            if nargout >= ARGOUT_XVEC
                 xvec(:, (outer-1)*restart + i+1) = x;
             end
     
@@ -461,9 +476,13 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
         end
     end
     % Remove unused space
-    absresvec = absresvec(1:iter+1);
-    relresvec = relresvec(1:iter+1);
-    if nargout > 6
+    if nargout >= ARGOUT_ABSRESVEC
+        absresvec = absresvec(1:iter+1);
+    end
+    if nargout >= ARGOUT_RELRESVEC
+        relresvec = relresvec(1:iter+1);
+    end
+    if nargout >= ARGOUT_XVEC
         xvec = xvec(:, 1:iter+1);
     end
 
