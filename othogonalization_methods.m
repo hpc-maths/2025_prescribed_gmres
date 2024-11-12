@@ -1,4 +1,4 @@
-addpath('gcr');
+addpath('krylov4r');
 addpath('test_cases');
 
 close all
@@ -33,7 +33,7 @@ maxit = n;
 
 
 %% -------------- GCR - Gram-Schmidt
-[~,~,~,~,~,relresvec] = gcr(A, b, [], tol, maxit, apply_H, [], 'orthog_algo', 'gs');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, apply_H, [], 'orthog_algo', 'gs');
 
 figure; axes = gca; 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -42,15 +42,15 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% -------------- GCR - Gram-Schmidt (2)
-[~,~,~,~,~,relresvec] = gcr(A, b, [], tol, maxit, apply_H, [], 'orthog_algo', 'gs', 'orthog_steps', 2);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, apply_H, [], 'orthog_algo', 'gs', 'orthog_steps', 2);
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', '+');
 
 %% -------------- GCR - Modified Gram-Schmidt
-[~,~,~,~,~,relresvec] = gcr(A, b, [], tol, maxit, apply_H, [], 'orthog_algo', 'mgs');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, apply_H, [], 'orthog_algo', 'mgs');
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', '+');
 
 %% -------------- GCR - Modified Gram-Schmidt (2)
-[~,~,~,~,~,relresvec] = gcr(A, b, [], tol, maxit, apply_H, [], 'orthog_algo', 'mgs', 'orthog_steps', 2);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, apply_H, [], 'orthog_algo', 'mgs', 'orthog_steps', 2);
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'square');
 
 %% -------------- GMRES (matlab)

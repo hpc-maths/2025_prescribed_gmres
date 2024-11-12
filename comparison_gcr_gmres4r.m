@@ -1,4 +1,4 @@
-addpath('gcr');
+addpath('krylov4r');
 addpath('test_cases');
 
 close all
@@ -32,7 +32,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[~,~,~,~,~,relresvec] = gcr(A, b, restart, tol, maxit);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, restart, tol, maxit);
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES4R','GCR');
@@ -50,7 +50,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[~,~,~,~,~,relresvec] = gcr(A, b, restart, tol, maxit, HL, []);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, restart, tol, maxit, HL, []);
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES4R','GCR');
@@ -69,7 +69,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[~,~,~,~,~,relresvec] = gcr(A, b, restart, tol, maxit, [], HR, 'res', 'r');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, restart, tol, maxit, [], HR, 'res', 'r');
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES4R','GCR');
@@ -88,7 +88,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[~,~,~,~,~,relresvec] = gcr(A, b, restart, tol, maxit, HL, HR, 'res', 'lr');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, restart, tol, maxit, HL, HR, 'res', 'lr');
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES4R','GCR');

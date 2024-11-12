@@ -1,4 +1,4 @@
-addpath('gcr');
+addpath('krylov4r');
 addpath('test_cases');
 
 close all
@@ -33,7 +33,7 @@ end
 
 %% HL
 W = H;
-[~,~,~,~,~,relresvec] = gcr(A, b, [], tol, maxit, apply_H, [], 'weight', W);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, apply_H, [], 'weight', W);
 
 
 figure; axes = gca; 
@@ -44,7 +44,7 @@ hold(axes, 'on');
 
 %% HR
 apply_W = apply_H;
-[~,~,~,~,~,relresvec] = gcr(A, b, [], tol, maxit, [], apply_H, 'weight', apply_W);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, [], apply_H, 'weight', apply_W);
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GCR - HL, W=H^{-1}', 'GCR - HR, W=H');

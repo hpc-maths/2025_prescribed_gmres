@@ -1,4 +1,4 @@
-addpath('gcr');
+addpath('krylov4r');
 addpath('test_cases');
 
 close all;
@@ -23,7 +23,7 @@ HL = [];
 HR = [];
 
 %% GCR
-[~,~,~,~,resvec] = gcr(A, b, restart, tol, maxit, HL, HR);
+[~,~,~,~,resvec] = gcr4r(A, b, restart, tol, maxit, HL, HR);
 
 norm_b = norm(b);
 
@@ -43,7 +43,7 @@ for i = 1:size(defl_space_dim, 2)
     Z = [real(VNM(:,1:2:m)), imag(VNM(:,1:2:m))];
     Y = A*Z;
     
-    [x,flag,relres,iter,resvec] = gcr(A, b, restart, tol, maxit, HL, HR, 'defl', Y, Z);
+    [x,flag,relres,iter,resvec] = gcr4r(A, b, restart, tol, maxit, HL, HR, 'defl', Y, Z);
     
     semilogy(axes, 0:length(resvec)-1, resvec/norm_b);
     lgd{i+1} = strcat('m = ', num2str(m));
