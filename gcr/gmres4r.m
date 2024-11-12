@@ -224,7 +224,9 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
         end
     end
 
+    no_MR = 0;
     if nargin < 7 || isempty(MR)
+        no_MR = 1;
         MR = @(x) x;
     end
     if ~isa(MR, 'function_handle')
@@ -278,15 +280,17 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             orthog_algo = varargin{j+1};
         elseif strcmp(varargin{j}, 'orthog_steps')
             orthog_steps = varargin{j+1};
-        elseif strcmp(varargin{i}, 'bkdwn_tol')
-            breakdown_tol = varargin{i+1};
+        elseif strcmp(varargin{j}, 'bkdwn_tol')
+            breakdown_tol = varargin{j+1};
         else
             error(['GMRES4R: unknown option ' varargin{j}]);
         end
         j = j+2;
     end
 
+    no_W = 0;
     if isempty(W)
+        no_W = 1;
         dot_W = @(x,y) y'*x;
         norm_W = @(x) norm(x);
     elseif isa(W, 'function_handle')
@@ -401,10 +405,21 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
         norm_z = norm_W(z);
         beta = norm_z;
 
-        % Compute residual norm and check convergence
-        %absres = residual_norm(ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);
-        absres = norm_z;
+        % Compute residual norm
+        if L_prec_res && (~R_prec_res || no_MR)
+            if weighted_res
+                absres = norm_z;
+            else
+                absres = norm(z);
+            end
+        elseif L_prec_res
+            absres = apply_res_norm(apply_MR(z));
+        else
+            absres = apply_res_norm(apply_res_prec(r));
+        end
         relres = absres/norm_ML_b_W;
+
+        % Save residual norms
         if nargout >= ARGOUT_ABSRESVEC
             absresvec((outer-1)*restart + 1) = absres;
         end
@@ -415,11 +430,13 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             xvec(:, (outer-1)*restart + 1) = x;
         end
 
+        % Check convergence
         if (relres < tol)
             flag = FLAG_CONVERGENCE;
             break;
         end
 
+        % Initialize Arnoldi process
         if strcmp(QR_algo, 'givens')
             g(:) = 0;
             g(1) = beta; % g = beta*e1
@@ -427,7 +444,6 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             beta_e1(1) = beta;
         end
 
-        % Initialize Arnoldi process
         v(:,1) = z/norm_z;
 
         for j=1:restart % if no restart, restart = maxit
@@ -502,18 +518,22 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             norm_z = abs(g(j+1));
     
             % Save residuals
-            %absres = residual_norm(ML_r, z, apply_MR, apply_res_norm, L_prec_res, R_prec_res);
-            absres = norm_z;
-            relres = absres/norm_ML_b_W;
-            if nargout >= ARGOUT_ABSRESVEC
-                absresvec((outer-1)*restart + j+1) = absres;
-            end
-            if nargout >= ARGOUT_RELRESVEC
-                relresvec((outer-1)*restart + j+1) = relres;
+            compute_residual_from_solution = 0;
+            if L_prec_res && (~R_prec_res || no_MR) && (weighted_res || no_W)
+                absres = norm_z;
+                relres = absres/norm_ML_b_W;
+                if nargout >= ARGOUT_ABSRESVEC
+                    absresvec((outer-1)*restart + j+1) = absres;
+                end
+                if nargout >= ARGOUT_RELRESVEC
+                    relresvec((outer-1)*restart + j+1) = relres;
+                end
+            else
+                compute_residual_from_solution = 1;
             end
 
             %% Check convergence and compute the solution if needed
-            if relres < tol || j == restart || norm_v_jp1 < breakdown_tol || nargout >= ARGOUT_XVEC
+            if relres < tol || j == restart || norm_v_jp1 < breakdown_tol || nargout >= ARGOUT_XVEC || compute_residual_from_solution
 
                 % Solution y of     min||    beta*e1 - Hy|| 
                 %                 = min||Q^T*beta*e1 - Ry|| because H=QR
@@ -532,6 +552,19 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
                 
                 if nargout >= ARGOUT_XVEC
                     xvec(:, (outer-1)*restart + j+1) = x;
+                end
+
+                if compute_residual_from_solution
+                    % Save residuals
+                    r = b - apply_A(x);
+                    absres = apply_res_norm(apply_res_prec(r));
+                    relres = absres/norm_ML_b_W;
+                    if nargout >= ARGOUT_ABSRESVEC
+                        absresvec((outer-1)*restart + j+1) = absres;
+                    end
+                    if nargout >= ARGOUT_RELRESVEC
+                        relresvec((outer-1)*restart + j+1) = relres;
+                    end
                 end
 
                 if relres < tol
@@ -570,18 +603,5 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
 
     if flag == FLAG_DIVERGENCE
         warning(['GMRES4R: the given tolerance could not be reached (maxit=' num2str(maxit) ').']);
-    end
-end
-
-
-function absres = residual_norm(ML_r, H_r, apply_MR, apply_res_norm, L_prec_res, R_prec_res)
-    if L_prec_res && ~R_prec_res
-        absres = apply_res_norm(ML_r);        % ||ML r||
-    elseif L_prec_res && R_prec_res
-        absres = apply_res_norm(H_r);         % ||H r||
-    elseif R_prec_res
-        absres = apply_res_norm(apply_MR(r)); % ||MR r||
-    else
-        absres = apply_res_norm(r);           % ||r||
     end
 end
