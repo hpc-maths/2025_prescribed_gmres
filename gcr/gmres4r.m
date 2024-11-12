@@ -355,16 +355,14 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     v = zeros(n, restart); % v_i
     % Hessenberg matrix / R in the factorization H=QR
     H = zeros(restart+1, restart);
+    % Right-hand side of the minimization problem (initially, beta*e1)
+    g = zeros(restart+1, 1);
 
     if strcmp(QR_algo, 'givens')
-        % Right-hand side of the minimization problem (initially, beta*e1)
-        g = zeros(restart+1, 1);
-
         c = zeros(restart, 1); % cos in Givens rotations
         s = zeros(restart, 1); % sin in Givens rotations
     elseif strcmp(QR_algo, 'matlab')
-        % Right-hand side of the minimization problem
-        beta_e1 = zeros(restart+1, 1);
+        beta_e1 = zeros(restart+1, 1); % Right-hand side of the minimization problem
     end
 
     %% Iterations
@@ -521,10 +519,12 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
                 %                 = min||Q^T*beta*e1 - Ry|| because H=QR
                 %                 = min||    g       - Ry|| by definition of g
                 %                 = R\g
+                
+                opts.UT = true; % configure the solver for an upper triangular matrix
                 if strcmp(QR_algo, 'matlab')
-                    y = R(1:j, 1:j)\g(1:j); % Here, we need to discard the last row of R, which is 0
+                    y = linsolve(R(1:j, 1:j), g(1:j), opts); % Here, we need to discard the last row of R, which is 0
                 elseif strcmp(QR_algo, 'givens')
-                    y = H(1:j, 1:j)\g(1:j);
+                    y = linsolve(H(1:j, 1:j), g(1:j), opts);
                 end
 
                 % Solution x of the system
