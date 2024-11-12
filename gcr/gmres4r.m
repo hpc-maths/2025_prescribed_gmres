@@ -287,13 +287,13 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     end
 
     if isempty(W)
-        herm_prod = @(x,y) y'*x;
+        dot_W = @(x,y) y'*x;
         norm_W = @(x) norm(x);
     elseif isa(W, 'function_handle')
-        herm_prod = @(x,y) y'*W(x);
+        dot_W = @(x,y) y'*W(x);
         norm_W = @(x) sqrt(x'*W(x));
     else
-        herm_prod = @(x,y) y'*W*x;
+        dot_W = @(x,y) y'*W*x;
         norm_W = @(x) sqrt(x'*W*x);
     end
 
@@ -353,10 +353,8 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     
     % Krylov space's orthonormal basis
     v = zeros(n, restart); % v_i
-    % ML*A*MR * v_i
-    Av = zeros(n, restart); 
     % Hessenberg matrix / R in the factorization H=QR
-    H = zeros(restart+1, restart+1);
+    H = zeros(restart+1, restart);
 
     if strcmp(QR_algo, 'givens')
         % Right-hand side of the minimization problem (initially, beta*e1)
@@ -387,7 +385,6 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
 
             % Empty vectors and matrices, just to be safe
             v(:,:)  = 0;
-            Av(:,:) = 0;
             H(:,:)  = 0;
             if strcmp(QR_algo, 'givens')
                 c(:) = 0;
@@ -433,26 +430,33 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
         end
 
         % Initialize Arnoldi process
-        v(:,1)  = z/norm_z;
-        Av(:,1) = apply_ML(apply_A(apply_MR(v(:,1))));
+        v(:,1) = z/norm_z;
 
         for j=1:restart % if no restart, restart = maxit
     
             iter = iter+1;
+
+            %% Initialize next basis vector
+            v(:,j+1) = apply_ML(apply_A(apply_MR(v(:,j))));
+
+            if ~all(isfinite(v(:,j+1)))
+                warning('GMRES4R: issue detected after applying the preconditioner.');
+                flag = FLAG_PREC_ISSUE;
+                break;
+            end
             
             %% Othogonalization against the previous basis vectors
-            v(:,j+1) = Av(:,j);
             for os=1:orthog_steps
                 v_jp1 = v(:,j+1);
                 if strcmp(orthog_algo, 'gs') % Gram-Schmidt
                     for i=1:j
-                        hp = herm_prod(v_jp1, v(:,i));
+                        hp = dot_W(v_jp1, v(:,i));
                         v(:,j+1) = v(:,j+1) - hp*v(:,i);
                         H(i,j) = H(i,j) + hp;
                     end
                 elseif strcmp(orthog_algo, 'mgs') % Modified Gram-Schmidt
                     for i=1:j
-                        hp = herm_prod(v(:,j+1), v(:,i));
+                        hp = dot_W(v(:,j+1), v(:,i));
                         v(:,j+1) = v(:,j+1) - hp*v(:,i);
                         H(i,j) = H(i,j) + hp;
                     end
@@ -545,13 +549,6 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
 
             %% Prepare next iteration of Arnoldi
             v(:,j+1)  = v(:,j+1)/norm_v_jp1;
-            Av(:,j+1) = apply_ML(apply_A(apply_MR(v(:,j+1))));
-
-            if ~all(isfinite(Av(:,j+1)))
-                warning('GMRES4R: issue detected after applying the preconditioner.');
-                flag = FLAG_PREC_ISSUE;
-                break;
-            end
             
         end
 

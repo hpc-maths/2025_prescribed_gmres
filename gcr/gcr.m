@@ -285,13 +285,13 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
     end
 
     if isempty(W)
-        herm_prod = @(x,y) y'*x;
+        dot_W = @(x,y) y'*x;
         norm_W = @(x) norm(x);
     elseif isa(W, 'function_handle')
-        herm_prod = @(x,y) y'*W(x);
+        dot_W = @(x,y) y'*W(x);
         norm_W = @(x) sqrt(x'*W(x));
     else
-        herm_prod = @(x,y) y'*W*x;
+        dot_W = @(x,y) y'*W*x;
         norm_W = @(x) sqrt(x'*W*x);
     end
 
@@ -405,8 +405,8 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
             iter = iter+1;
     
             % Step length in the research direction
-            delta = herm_prod(HL_r, HL_Ap(:,i));
-            gamma = herm_prod(HL_Ap(:,i), HL_Ap(:,i));
+            delta = dot_W(HL_r, HL_Ap(:,i));
+            gamma = dot_W(HL_Ap(:,i), HL_Ap(:,i));
             alpha = delta / gamma;
 
             if abs(delta) < breakdown_tol
@@ -456,12 +456,12 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr(A, b, rest
                 if strcmp(orthog_algo, 'gs') % Gram-Schmidt
                     HL_Az = apply_HL(apply_A(p(:,i+1)));
                     for j=1:i
-                        beta = herm_prod(HL_Az, HL_Ap(:,j)) / herm_prod(HL_Ap(:,j), HL_Ap(:,j));
+                        beta = dot_W(HL_Az, HL_Ap(:,j)) / dot_W(HL_Ap(:,j), HL_Ap(:,j));
                         p(:,i+1) = p(:,i+1) - beta*p(:,j);
                     end
                 elseif strcmp(orthog_algo, 'mgs') % Modified Gram-Schmidt
                     for j=1:i
-                        beta = herm_prod(apply_HL(apply_A(p(:,i+1))), HL_Ap(:,j)) / herm_prod(HL_Ap(:,j), HL_Ap(:,j));
+                        beta = dot_W(apply_HL(apply_A(p(:,i+1))), HL_Ap(:,j)) / dot_W(HL_Ap(:,j), HL_Ap(:,j));
                         p(:,i+1) = p(:,i+1) - beta*p(:,j);
                     end
                 end
