@@ -386,8 +386,8 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             r = b - apply_A(x);
 
             % Empty vectors and matrices, just to be safe
-            v(:,:)  = 0;
-            H(:,:)  = 0;
+            v(:,:) = 0;
+            H(:,:) = 0;
             if strcmp(QR_algo, 'givens')
                 c(:) = 0;
                 s(:) = 0;
@@ -461,8 +461,8 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             
             %% Othogonalization against the previous basis vectors
             for os=1:orthog_steps
-                v_jp1 = v(:,j+1);
                 if strcmp(orthog_algo, 'gs') % Gram-Schmidt
+                    v_jp1 = v(:,j+1);
                     for i=1:j
                         hp = dot_W(v_jp1, v(:,i));
                         v(:,j+1) = v(:,j+1) - hp*v(:,i);
