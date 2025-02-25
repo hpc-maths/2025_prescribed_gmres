@@ -9,8 +9,7 @@ b = ones(size(A, 1), 1);
 
 %% Solver parameters
 restart = [];
-tol     = 1e-10;
-maxit   = size(A, 1);
+maxit   = size(A,1);
 
 % Preconditioners
 [L, U] = ilu(A);
@@ -22,7 +21,7 @@ HR = U;
 %% --------------- No preconditioner
 
 %% GMRES
-[~,~,~,~,~,relresvec] = gmres4r(A, b, restart, tol, maxit);
+[~,~,~,~,~,relresvec] = gmres4r(A, b, [], [], 'restart', restart);
 
 figure; axes = gca; 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -32,7 +31,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[~,~,~,~,~,relresvec] = gcr4r(A, b, restart, tol, maxit);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, [], [], 'restart', restart);
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES4R','GCR');
@@ -40,7 +39,7 @@ legend('GMRES4R','GCR');
 %% -------------- Left preconditioner
 
 %% GMRES
-[~,~,~,~,~,relresvec] = gmres4r(A, b, restart, tol, maxit, HL, []);
+[~,~,~,~,~,relresvec] = gmres4r(A, b, HL, [], 'restart', restart);
 
 figure; axes = gca;
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -50,7 +49,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[~,~,~,~,~,relresvec] = gcr4r(A, b, restart, tol, maxit, HL, []);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, HL, [], 'restart', restart);
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES4R','GCR');
@@ -59,7 +58,7 @@ legend('GMRES4R','GCR');
 %% -------------- Right preconditioner
 
 %% GMRES
-[~,~,~,~,~,relresvec] = gmres4r(A, b, restart, tol, maxit, [], HR);
+[~,~,~,~,~,relresvec] = gmres4r(A, b, [], HR, 'restart', restart);
 
 figure; axes = gca;
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -69,7 +68,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[~,~,~,~,~,relresvec] = gcr4r(A, b, restart, tol, maxit, [], HR, 'res', 'r');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, [], HR, 'restart', restart, 'res', 'r');
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES4R','GCR');
@@ -78,7 +77,7 @@ legend('GMRES4R','GCR');
 %% -------------- Left-right preconditioners
 
 %% GMRES
-[~,~,~,~,~,relresvec] = gmres4r(A, b, restart, tol, maxit, HL, HR);
+[~,~,~,~,~,relresvec] = gmres4r(A, b, HL, HR, 'restart', restart);
 
 figure; axes = gca;
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -88,7 +87,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[~,~,~,~,~,relresvec] = gcr4r(A, b, restart, tol, maxit, HL, HR, 'res', 'lr');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, HL, HR, 'restart', restart, 'res', 'lr');
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES4R','GCR');

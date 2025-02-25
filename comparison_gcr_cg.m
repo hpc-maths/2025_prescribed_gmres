@@ -32,7 +32,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 
 %% GCR
 W = @(x) A\x; % Weight matrix = A^-1
-[x,flag,relres,iter,resvec] = gcr4r(A, b, [], tol, maxit, HL, HR, 'weight', W, 'res', ''); % For comparison, we don't want the weighted norm of the residual
+[x,flag,relres,iter,resvec] = gcr4r(A, b, HL, HR, 'tol', tol, 'maxit', maxit, 'weight', W, 'res', ''); % For comparison, we don't want the weighted norm of the residual
 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_b, 'Marker', 'x');
 legend('CG','GCR');

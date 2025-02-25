@@ -14,16 +14,8 @@ N = full(1/2*(A-A'));
 
 [VNM, DNM] = eig(N,M);
 
-%% Solver parameters
-restart = [];
-tol     = 1e-10;
-maxit   = n;
-% Preconditioners
-HL = [];
-HR = [];
-
 %% GCR
-[~,~,~,~,resvec] = gcr4r(A, b, restart, tol, maxit, HL, HR);
+[~,~,~,~,resvec] = gcr4r(A, b);
 
 norm_b = norm(b);
 
@@ -43,7 +35,7 @@ for i = 1:size(defl_space_dim, 2)
     Z = [real(VNM(:,1:2:m)), imag(VNM(:,1:2:m))];
     Y = A*Z;
     
-    [x,flag,relres,iter,resvec] = gcr4r(A, b, restart, tol, maxit, HL, HR, 'defl', Y, Z);
+    [x,flag,relres,iter,resvec] = gcr4r(A, b, [], [], 'defl', Y, Z);
     
     semilogy(axes, 0:length(resvec)-1, resvec/norm_b);
     lgd{i+1} = strcat('m = ', num2str(m));
@@ -51,7 +43,7 @@ end
 legend(axes, lgd);
 
 %% GMRES
-[~,~,~,~,resvec] = gmres4r(A, b, restart, tol, maxit, HL, HR);
+[~,~,~,~,resvec] = gmres4r(A, b);
 
 figure; axes = gca;
 semilogy(axes, 0:length(resvec)-1, resvec/norm_b);
@@ -69,7 +61,7 @@ for i = 1:size(defl_space_dim, 2)
     Z = [real(VNM(:,1:2:m)), imag(VNM(:,1:2:m))];
     Y = A*Z;
     
-    [x,flag,relres,iter,resvec] = gmres4r(A, b, restart, tol, maxit, HL, HR, 'defl', Y, Z);
+    [x,flag,relres,iter,resvec] = gmres4r(A, b, [], [], 'defl', Y, Z);
     
     semilogy(axes, 0:length(resvec)-1, resvec/norm_b);
     lgd{i+1} = strcat('m = ', num2str(m));

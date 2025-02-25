@@ -5,7 +5,7 @@ close all
 
 %% Problem construction
 n = 100;
-pb = 6;
+pb = 10;
 if pb == 1
     DH = diag(rand(n, 1));
     DH(1,1) = 10^8;
@@ -124,6 +124,15 @@ elseif pb == 9
     apply_H = @(x) H\x;
     x = rand(n, 1);
     b = A*x;
+elseif pb == 10
+    alpha = 8;
+    penalization = 1e10;
+    A = laplacian(n, penalization);
+    n = size(A,1);
+    H = diag(diag(A));
+    apply_H = @(x) H\x;
+    x = rand(n, 1);
+    b = A*x;
 end
 
 %% Solver parameters
@@ -136,7 +145,7 @@ bkdwn_tol = 1e-16;
 %% -------------- Minimized residual
 
 %% HL
-[~,~,~,~,~,relresvec,xvecL] = gcr4r(A, b, [], tol, maxit, apply_H, [], 'orthog_algo', orthog_algo, 'orthog_steps', orthog_steps, 'bkdwn_tol', bkdwn_tol);
+[~,~,~,~,~,relresvec,xvecL] = gcr4r(A, b, apply_H, [], 'tol', tol, 'maxit', maxit, 'orthog_algo', orthog_algo, 'orthog_steps', orthog_steps, 'bkdwn_tol', bkdwn_tol);
 
 figure; axes = gca; 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -146,7 +155,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% HR
-[~,~,~,~,~,relresvec,xvecR] = gcr4r(A, b, [], tol, maxit, [], apply_H, 'orthog_algo', orthog_algo, 'orthog_steps', orthog_steps, 'bkdwn_tol', bkdwn_tol);
+[~,~,~,~,~,relresvec,xvecR] = gcr4r(A, b, [], apply_H, 'tol', tol, 'maxit', maxit, 'orthog_algo', orthog_algo, 'orthog_steps', orthog_steps, 'bkdwn_tol', bkdwn_tol);
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GCR - HL', 'GCR - HR');
@@ -173,7 +182,7 @@ legend(axes, 'GCR - HL', 'GCR - HR');
 % %% -------------- Non-preconditioned residual
 % 
 % %% HL
-% [~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, apply_H, [], 'res', '', 'orthog_algo', orthog_algo, 'orthog_steps', orthog_steps, 'bkdwn_tol', bkdwn_tol);
+% [~,~,~,~,~,relresvec] = gcr4r(A, b, apply_H, [], 'tol', tol, 'maxit', maxit, 'res', '', 'orthog_algo', orthog_algo, 'orthog_steps', orthog_steps, 'bkdwn_tol', bkdwn_tol);
 % 
 % figure; axes = gca; 
 % semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -183,7 +192,7 @@ legend(axes, 'GCR - HL', 'GCR - HR');
 % hold(axes, 'on');
 % 
 % %% HR
-% [~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, [], apply_H, 'res', '', 'orthog_algo', orthog_algo, 'orthog_steps', orthog_steps, 'bkdwn_tol', bkdwn_tol);
+% [~,~,~,~,~,relresvec] = gcr4r(A, b, [], apply_H, 'tol', tol, 'maxit', maxit, 'res', '', 'orthog_algo', orthog_algo, 'orthog_steps', orthog_steps, 'bkdwn_tol', bkdwn_tol);
 % 
 % semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 % legend(axes, 'GCR - HL', 'GCR - HR');
@@ -192,7 +201,7 @@ legend(axes, 'GCR - HL', 'GCR - HR');
 % %% -------------- Preconditioned residual
 % 
 % %% GCR - HL
-% [~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, apply_H, [], 'res', 'l', 'orthog_algo', orthog_algo, 'orthog_steps', orthog_steps, 'bkdwn_tol', bkdwn_tol);
+% [~,~,~,~,~,relresvec] = gcr4r(A, b, apply_H, [], 'tol', tol, 'maxit', maxit, 'res', 'l', 'orthog_algo', orthog_algo, 'orthog_steps', orthog_steps, 'bkdwn_tol', bkdwn_tol);
 % 
 % figure; axes = gca; 
 % semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -202,7 +211,7 @@ legend(axes, 'GCR - HL', 'GCR - HR');
 % hold(axes, 'on');
 % 
 % %% GCR - HR
-% [~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, [], apply_H, 'res', 'r', 'orthog_algo', orthog_algo, 'orthog_steps', orthog_steps, 'bkdwn_tol', bkdwn_tol);
+% [~,~,~,~,~,relresvec] = gcr4r(A, b, [], apply_H, 'tol', tol, 'maxit', maxit, 'res', 'r', 'orthog_algo', orthog_algo, 'orthog_steps', orthog_steps, 'bkdwn_tol', bkdwn_tol);
 % semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 % legend(axes, 'GCR - HL', 'GCR - HR');
 
@@ -229,7 +238,7 @@ legend(axes, 'GCR - HL', 'GCR - HR');
 %% -------------- GMRES (custom)
 
 %% GMRES - HL
-[~,~,~,~,~,relresvec] = gmres4r(A, b, [], tol, maxit, apply_H, []);
+[~,~,~,~,~,relresvec] = gmres4r(A, b, apply_H, [], 'tol', tol, 'maxit', maxit);
 figure; axes = gca; 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
 title(axes, "GMRES (custom)");
@@ -237,6 +246,6 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GMRES - HR
-[~,~,~,~,~,relresvec] = gmres4r(A, b, [], tol, maxit, [], apply_H, 'orthog_algo', 'mgs', 'orthog_steps', 2);
+[~,~,~,~,~,relresvec] = gmres4r(A, b, [], apply_H, 'tol', tol, 'maxit', maxit, 'orthog_algo', 'mgs', 'orthog_steps', 2);
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GMRES (custom) - HL', 'GMRES (custom) - HR');

@@ -4,12 +4,11 @@ addpath('test_cases');
 %% System to solve
 n = 100;
 A = convdiff(n, 0.001);
-%A = laplacian(n);
+%A = laplacian(n, 2);
 b = rand(size(A, 1), 1);
 
 %% Solver parameters
 tol     = 1e-8;
-maxit   = size(A, 1);
 
 % Preconditioners
 %L = ichol(A);
@@ -34,7 +33,7 @@ end
 %% -------------- Minimized norm
 
 %% HL
-[~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, apply_H, []);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, apply_H, [], 'tol', tol);
 
 figure; axes = gca; 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -44,7 +43,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% HR
-[~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, [], apply_H);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, [], apply_H, 'tol', tol);
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GCR - HL', 'GCR - HR');
@@ -52,7 +51,7 @@ legend(axes, 'GCR - HL', 'GCR - HR');
 %% -------------- Non-preconditioned residual norm
 
 %% HL
-[~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, apply_H, [], 'res', '');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, apply_H, [], 'tol', tol, 'res', '');
 
 figure; axes = gca; 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -62,7 +61,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% HR
-[~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, [], apply_H, 'res', '');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, [], apply_H, 'tol', tol, 'res', '');
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GCR - HL', 'GCR - HR');
@@ -73,7 +72,7 @@ legend(axes, 'GCR - HL', 'GCR - HR');
 %% -------------- Preconditioned residual norm
 
 %% GCR - HL
-[~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, apply_H, [], 'res', 'l');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, apply_H, [], 'tol', tol, 'res', 'l');
 
 figure; axes = gca; 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -83,7 +82,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR - HR
-[~,~,~,~,~,relresvec] = gcr4r(A, b, [], tol, maxit, [], apply_H, 'res', 'r');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, [], apply_H, 'tol', tol, 'res', 'r');
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GCR - HL', 'GCR - HR');
 
@@ -92,6 +91,7 @@ legend(axes, 'GCR - HL', 'GCR - HR');
 
 %% -------------- GMRES
 
+maxit = size(A, 1);
 norm_b = norm(b);
 norm_Hb = norm(apply_H(b));
 

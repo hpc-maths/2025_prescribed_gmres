@@ -1,44 +1,42 @@
-function [x, varargout] = gcr4r(A, b, restart, tol, maxit, HL, HR, varargin)
+function [x, varargout] = gcr4r(A, b, HL, HR, varargin)
 %GCR   Generalized Conjugate Residual Method.
-%   X = GCR(A,B) attempts to solve the system of linear equations A*X = B
+%   X = GCR4R(A,B) attempts to solve the system of linear equations A*X = B
 %   for X. The N-by-N coefficient matrix A must be square and the right
 %   hand side column vector B must have length N. This uses the unrestarted
 %   method with MIN(N,10) total iterations.
 %
-%   X = GCR(AFUN,B) accepts a function handle AFUN instead of the matrix
+%   X = GCR4R(AFUN,B) accepts a function handle AFUN instead of the matrix
 %   A. AFUN(X) accepts a vector input X and returns the matrix-vector
 %   product A*X. In all of the following syntaxes, you can replace A by
 %   AFUN.
 %
-%   X = GCR(A,B,RESTART) restarts the method every RESTART iterations.
-%   If RESTART is [] then GCR uses the unrestarted method as above.
+%   X = GCR4R(A,B,'restart',RESTART) restarts the method every RESTART iterations.
+%   If RESTART is [] or specified, then the unrestarted method is used, as above.
 %
-%   X = GCR(A,B,RESTART,TOL) specifies the tolerance of the method. If
-%   TOL is [] then GCR uses the default, 1e-6.
+%   X = GCR4R(A,B,'tol',TOL) specifies the tolerance of the method. If
+%   TOL is [] or not specified, then the default value, 1e-12, is used.
 %
-%   X = GCR(A,B,RESTART,TOL,MAXIT) specifies the maximum number of
+%   X = GCR4R(A,B,'maxit',MAXIT) specifies the maximum number of
 %   iterations.
 %
-%   X = GCR(A,B,RESTART,TOL,MAXIT,HL) and
-%   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR) use left and right 
-%   preconditioners. If HL or HR is [] then the corresponding
+%   X = GCR4R(A,B,HL) and X = GCR4R(A,B,HL,HR) use left and right 
+%   preconditioners. If HL or HR is [] or unspecified then the corresponding
 %   preconditioner is not applied. They may be a function handle
 %   returning HL\X.
 %
-%   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,'weight',W) specifies the weight  
+%   X = GCR4R(A,B,HL,HR,'weight',W) specifies the weight  
 %   matrix defining the hermitian inner product used in the algorithm,
 %   computed by y'*W*x. W must be hermitian positive definite. 
 %   A function can also be passed, returning how W is applied to a vector.
-%   If W is [] or not specified, then GCR uses the identity.
+%   If W is [] or not specified, then identity is used.
 %
-%   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,'defl',Y,Z) specifies the deflation
-%   spaces.
+%   X = GCR4R(A,B,HL,HR,'defl',Y,Z) specifies the deflation spaces.
 %
-%   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,'guess',X0) specifies the first 
+%   X = GCR4R(A,B,HL,HR,'guess',X0) specifies the first 
 %   initial guess. If X0 is [] or not specified, then GCR uses the default, 
 %   an all zero vector.
 %
-%   X = GCR(A,B,RESTART,TOL,MAXIT,HL,HR,'res',OPT) specifies how the
+%   X = GCR4R(A,B,HL,HR,'res',OPT) specifies how the
 %   residual norm is computed. The convergence cirterion also uses the 
 %   same configuration to compute the norm of B for assessing the relative
 %   residual norm RELRES.
@@ -54,49 +52,40 @@ function [x, varargout] = gcr4r(A, b, restart, tol, maxit, HL, HR, varargin)
 %   If HR only, then RELRES=norm(R)/norm(B).
 %   If W is provided, then the W-norm is used.
 %
-%   [X,FLAG] = GCR(A,B,...) also returns a convergence FLAG:
+%   [X,FLAG] = GCR4R(A,B,...) also returns a convergence FLAG:
 %    0 GCR converged to the desired tolerance TOL within MAXIT iterations.
 %    1 GCR iterated MAXIT times but did not converge.
 %    2 preconditioner HL or HR was ill-conditioned.
 %    3 a breakdown occurred.
 %
-%   [X,FLAG,RELRES] = GCR(A,B,...) also returns the relative residual
+%   [X,FLAG,RELRES] = GCR4R(A,B,...) also returns the relative residual
 %   NORM(B-A*X)/NORM(B). If FLAG is 0, then RELRES <= TOL. Note that with
 %   preconditioners the preconditioned relative residual may be used.
 %   See argument 'res' for details.
 %
-%   [X,FLAG,RELRES,ITER] = GCR(A,B,...) also returns both the iteration
+%   [X,FLAG,RELRES,ITER] = GCR4R(A,B,...) also returns both the iteration
 %   number at which X was computed: 0 <= ITER <= MAXIT.
 %
-%   [X,FLAG,RELRES,ITER,ABSRESVEC] = GCR(A,B,...) also returns a vector of
+%   [X,FLAG,RELRES,ITER,ABSRESVEC] = GCR4R(A,B,...) also returns a vector of
 %   the absolute residual norms at each iteration.
 %   See argument 'res' for detail on how ABSRESVEC is computed according
 %   to the presence of preconditioners and weighted norm.
 %
-%   [X,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC] = GCR(A,B,...) also returns a 
+%   [X,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC] = GCR4R(A,B,...) also returns a 
 %   vector of the relative residual norms at each iteration, used as 
 %   convergence criterion.
 %   See argument 'res' for detail on how RELRESVEC is computed according
 %   to the presence of preconditioners and weighted norm.
 %
-%   [X,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC,XVEC] = GCR(A,B,...) also 
+%   [X,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC,XVEC] = GCR4R(A,B,...) also 
 %   returns the successive approximate solutions.
 
     %% Argument processing
 
     if nargin < 3
-        restart = [];
-    end
-    if nargin < 4
-        tol = [];
-    end
-    if nargin < 5
-        maxit = [];
-    end
-    if nargin < 6
         HL = [];
     end
-    if nargin < 7
+    if nargin < 4
         HR = [];
     end
     
@@ -149,7 +138,7 @@ function [x, varargout] = gcr4r(A, b, restart, tol, maxit, HL, HR, varargin)
 
     if ~with_deflation
         % If no deflation space, then we apply the regular GCR algorithm
-        [x, varargout{1:nargout-1}] = wp_gcr4r(A, b, restart, tol, maxit, HL, HR, varargin{:});
+        [x, varargout{1:nargout-1}] = wp_gcr4r(A, b, HL, HR, varargin{:});
     else
         % Initializations
         AZ = A*Z;
@@ -164,7 +153,7 @@ function [x, varargout] = gcr4r(A, b, restart, tol, maxit, HL, HR, varargin)
         PDb = apply_PD(b);
     
         % Solve deflated system with GCR
-        [x, varargout{1:nargout-1}] = wp_gcr4r(apply_PDA, PDb, restart, tol, maxit, HL, HR, varargin{:});
+        [x, varargout{1:nargout-1}] = wp_gcr4r(apply_PDA, PDb, HL, HR, varargin{:});
     
         % x = QD*x + (I-QD)x
         x = apply_QD(x) + Z*solve_YtAZ(Y'*b);
@@ -178,7 +167,7 @@ end
 %     Weighted Preconditioned GCR      %
 %           (no deflation)             %
 %  ----------------------------------  %
-function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr4r(A, b, restart, tol, maxit, HL, HR, varargin)
+function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr4r(A, b, HL, HR, varargin)
 
     %% Argument processing
 
@@ -194,27 +183,8 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr4r(A, b, re
             error('GCR: The right-hand side b must have the same number of rows than A.');
         end
     end
-    if nargin < 3
-        restart = [];
-    end
-    if nargin < 4 || isempty(tol)
-        tol = 1e-6;
-    end
-    if nargin < 5 || isempty(maxit)
-        if isempty(restart)
-            maxit = n;
-        else
-            maxit = ceil(n/restart);
-        end
-    end
-    if isempty(restart)
-        maxouter = 1;
-        restart = maxit;
-    else
-        maxouter = ceil(maxit/restart);
-    end
 
-    if nargin < 6 || isempty(HL)
+    if nargin < 3 || isempty(HL)
         HL = @(x) x;
     end
     if ~isa(HL, 'function_handle')
@@ -223,7 +193,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr4r(A, b, re
         end
     end
 
-    if nargin < 7 || isempty(HR)
+    if nargin < 4 || isempty(HR)
         HR = @(x) x;
     end
     if ~isa(HR, 'function_handle')
@@ -250,6 +220,10 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr4r(A, b, re
 
     apply_H = @(x) apply_HR(apply_HL(x));
 
+    restart = [];
+    tol     = [];
+    maxit   = [];
+
     W = [];
     x0 = [];
 
@@ -262,7 +236,13 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr4r(A, b, re
 
     i = 1;
     while i < length(varargin)
-        if strcmp(varargin{i}, 'weight')
+        if strcmp(varargin{i}, 'restart')
+            restart = varargin{i+1};
+        elseif strcmp(varargin{i}, 'tol')
+            tol = varargin{i+1};
+        elseif strcmp(varargin{i}, 'maxit')
+            maxit = varargin{i+1};
+        elseif strcmp(varargin{i}, 'weight')
             W = varargin{i+1};
         elseif strcmp(varargin{i}, 'guess')
             x0 = varargin{i+1};
@@ -282,6 +262,24 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr4r(A, b, re
             error(['GCR: unknown option ' varargin{i}]);
         end
         i = i+2;
+    end
+
+    if isempty(tol)
+        tol = 1e-12;
+    end
+
+    if isempty(maxit)
+        if isempty(restart)
+            maxit = n;
+        else
+            maxit = ceil(n/restart);
+        end
+    end
+    if isempty(restart)
+        maxouter = 1;
+        restart = maxit;
+    else
+        maxouter = ceil(maxit/restart);
     end
 
     if isempty(W)

@@ -1,5 +1,5 @@
-function [x, varargout] = gmres4r(A, b, restart, tol, maxit, ML, MR, varargin)
-%GMRES4R   Generalized Conjugate Residual Method.
+function [x, varargout] = gmres4r(A, b, ML, MR, varargin)
+%GMRES4R   Generalized Minimal Residual Method.
 %   X = GMRES4R(A,B) attempts to solve the system of linear equations A*X = B
 %   for X. The N-by-N coefficient matrix A must be square and the right
 %   hand side column vector B must have length N. This uses the unrestarted
@@ -10,35 +10,33 @@ function [x, varargout] = gmres4r(A, b, restart, tol, maxit, ML, MR, varargin)
 %   product A*X. In all of the following syntaxes, you can replace A by
 %   AFUN.
 %
-%   X = GMRES4R(A,B,RESTART) restarts the method every RESTART iterations.
-%   If RESTART is [] then GMRES4R uses the unrestarted method as above.
+%   X = GMRES4R(A,B,'restart',RESTART) restarts the method every RESTART iterations.
+%   If RESTART is [] then the unrestarted method is used.
 %
-%   X = GMRES4R(A,B,RESTART,TOL) specifies the tolerance of the method. If
-%   TOL is [] then GMRES4R uses the default, 1e-6.
+%   X = GMRES4R(A,B,'tol',TOL) specifies the tolerance of the method. If
+%   TOL is [] then the default value, 1e-12 is used.
 %
-%   X = GMRES4R(A,B,RESTART,TOL,MAXIT) specifies the maximum number of
+%   X = GMRES4R(A,B,'maxit',MAXIT) specifies the maximum number of
 %   iterations.
 %
-%   X = GMRES4R(A,B,RESTART,TOL,MAXIT,ML) and
-%   X = GMRES4R(A,B,RESTART,TOL,MAXIT,ML,MR) use left and right 
-%   preconditioners. If ML or MR is [] then the corresponding
+%   X = GMRES4R(A,B,ML) and X = GMRES4R(A,B,ML,MR) use left and right 
+%   preconditioners. If ML or MR is [] or unspecified, then the corresponding
 %   preconditioner is not applied. They may be a function handle
 %   returning ML\X.
 %
-%   X = GMRES4R(A,B,RESTART,TOL,MAXIT,ML,MR,'weight',W) specifies the weight  
+%   X = GMRES4R(A,B,ML,MR,'weight',W) specifies the weight  
 %   matrix defining the hermitian inner product used in the algorithm,
 %   computed by y'*W*x. W must be hermitian positive definite. 
 %   A function can also be passed, returning how W is applied to a vector.
-%   If W is [] or not specified, then GMRES4R uses the identity.
+%   If W is [] or not specified, then identity is used.
 %
-%   X = GMRES4R(A,B,RESTART,TOL,MAXIT,ML,MR,'defl',Y,Z) specifies the deflation
-%   spaces.
+%   X = GMRES4R(A,B,ML,MR,'defl',Y,Z) specifies the deflation spaces.
 %
-%   X = GMRES4R(A,B,RESTART,TOL,MAXIT,ML,MR,'guess',X0) specifies the first 
+%   X = GMRES4R(A,B,ML,MR,'guess',X0) specifies the first 
 %   initial guess. If X0 is [] or not specified, then GMRES4R uses the default, 
 %   an all zero vector.
 %
-%   X = GMRES4R(A,B,RESTART,TOL,MAXIT,ML,MR,'res',OPT) specifies how the
+%   X = GMRES4R(A,B,ML,MR,'res',OPT) specifies how the
 %   residual norm is computed. The convergence cirterion also uses the 
 %   same configuration to compute the norm of B for assessing the relative
 %   residual norm RELRES.
@@ -85,18 +83,9 @@ function [x, varargout] = gmres4r(A, b, restart, tol, maxit, ML, MR, varargin)
     %% Argument processing
 
     if nargin < 3
-        restart = [];
-    end
-    if nargin < 4
-        tol = [];
-    end
-    if nargin < 5
-        maxit = [];
-    end
-    if nargin < 6
         ML = [];
     end
-    if nargin < 7
+    if nargin < 4
         MR = [];
     end
     
@@ -149,8 +138,8 @@ function [x, varargout] = gmres4r(A, b, restart, tol, maxit, ML, MR, varargin)
 
     if ~with_deflation
         % If no deflation space, then we apply the regular GMRES algorithm
-        %[x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, restart, tol, maxit, ML, MR, varargin{:});
-        [x, varargout{1:nargout-1}] = wp_gmres4r(A, b, restart, tol, maxit, ML, MR, varargin{:});
+        %[x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, ML, MR, varargin{:});
+        [x, varargout{1:nargout-1}] = wp_gmres4r(A, b, ML, MR, varargin{:});
     else
         % Initializations
         AZ = A*Z;
@@ -165,7 +154,7 @@ function [x, varargout] = gmres4r(A, b, restart, tol, maxit, ML, MR, varargin)
         PDb = apply_PD(b);
     
         % Solve deflated system with GMRES
-        [x, varargout{1:nargout-1}] = wp_gmres4r(apply_PDA, PDb, restart, tol, maxit, ML, MR, varargin{:});
+        [x, varargout{1:nargout-1}] = wp_gmres4r(apply_PDA, PDb, ML, MR, varargin{:});
     
         % x = QD*x + (I-QD)x
         x = apply_QD(x) + Z*solve_YtAZ(Y'*b);
@@ -179,7 +168,7 @@ end
 %     Weighted Preconditioned GMRES      %
 %           (no deflation)               %
 %  ------------------------------------  %
-function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, restart, tol, maxit, ML, MR, varargin)
+function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, ML, MR, varargin)
 
     %% Argument processing
 
@@ -195,27 +184,8 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             error('GMRES4R: The right-hand side b must have the same number of rows than A.');
         end
     end
-    if nargin < 3
-        restart = [];
-    end
-    if nargin < 4 || isempty(tol)
-        tol = 1e-6;
-    end
-    if nargin < 5 || isempty(maxit)
-        if isempty(restart)
-            maxit = n;
-        else
-            maxit = ceil(n/restart);
-        end
-    end
-    if isempty(restart)
-        maxouter = 1;
-        restart = maxit;
-    else
-        maxouter = ceil(maxit/restart);
-    end
 
-    if nargin < 6 || isempty(ML)
+    if nargin < 3 || isempty(ML)
         ML = @(x) x;
     end
     if ~isa(ML, 'function_handle')
@@ -225,7 +195,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     end
 
     no_MR = 0;
-    if nargin < 7 || isempty(MR)
+    if nargin < 4 || isempty(MR)
         no_MR = 1;
         MR = @(x) x;
     end
@@ -253,6 +223,10 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
 
     apply_M = @(x) apply_MR(apply_ML(x));
 
+    restart = [];
+    tol     = [];
+    maxit   = [];
+    
     W = [];
     x0 = [];
 
@@ -266,7 +240,13 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
 
     j = 1;
     while j < length(varargin)
-        if strcmp(varargin{j}, 'weight')
+        if strcmp(varargin{j}, 'restart')
+            restart = varargin{j+1};
+        elseif strcmp(varargin{j}, 'tol')
+            tol = varargin{j+1};
+        elseif strcmp(varargin{j}, 'maxit')
+            maxit = varargin{j+1};
+        elseif strcmp(varargin{j}, 'weight')
             W = varargin{j+1};
         elseif strcmp(varargin{j}, 'guess')
             x0 = varargin{j+1};
@@ -286,6 +266,24 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             error(['GMRES4R: unknown option ' varargin{j}]);
         end
         j = j+2;
+    end
+
+    if isempty(tol)
+        tol = 1e-12;
+    end
+
+    if isempty(maxit)
+        if isempty(restart)
+            maxit = n;
+        else
+            maxit = ceil(n/restart);
+        end
+    end
+    if isempty(restart)
+        maxouter = 1;
+        restart = maxit;
+    else
+        maxouter = ceil(maxit/restart);
     end
 
     no_W = 0;
