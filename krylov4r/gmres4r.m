@@ -1,9 +1,9 @@
 function [x, varargout] = gmres4r(A, b, varargin)
-%GMRES4R   Generalized Minimal Residual Method.
+%GMRES4R   Generalized Minimal Residual Method For Research.
 %   X = GMRES4R(A,B) attempts to solve the system of linear equations A*X = B
 %   for X. The N-by-N coefficient matrix A must be square and the right
 %   hand side column vector B must have length N. This uses the unrestarted
-%   method with MIN(N,10) total iterations.
+%   method.
 %
 %   X = GMRES4R(AFUN,B) accepts a function handle AFUN instead of the matrix
 %   A. AFUN(X) accepts a vector input X and returns the matrix-vector
@@ -19,24 +19,23 @@ function [x, varargout] = gmres4r(A, b, varargin)
 %   X = GMRES4R(A,B,'maxit',MAXIT) specifies the maximum number of
 %   iterations.
 %
-%   X = GMRES4R(A,B,ML) and X = GMRES4R(A,B,ML,MR) use left and right 
+%   GMRES4R(A,B,'left_prec',ML,'right_prec',MR) use left and right 
 %   preconditioners. If ML or MR is [] or unspecified, then the corresponding
 %   preconditioner is not applied. They may be a function handle
 %   returning ML\X.
 %
-%   X = GMRES4R(A,B,ML,MR,'weight',W) specifies the weight  
+%   X = GMRES4R(A,B,'weight',W) specifies the weight  
 %   matrix defining the hermitian inner product used in the algorithm,
 %   computed by y'*W*x. W must be hermitian positive definite. 
 %   A function can also be passed, returning how W is applied to a vector.
 %   If W is [] or not specified, then identity is used.
 %
-%   X = GMRES4R(A,B,ML,MR,'defl',Y,Z) specifies the deflation spaces.
+%   X = GMRES4R(A,B,'defl',Y,Z) specifies the deflation spaces.
 %
-%   X = GMRES4R(A,B,ML,MR,'guess',X0) specifies the first 
-%   initial guess. If X0 is [] or not specified, then GMRES4R uses the default, 
-%   an all zero vector.
+%   X = GMRES4R(A,B,'guess',X0) specifies the first initial guess. 
+%   If X0 is [] or not specified, then an all zero vector is used.
 %
-%   X = GMRES4R(A,B,ML,MR,'res',OPT) specifies how the
+%   X = GMRES4R(A,B,'res',OPT) specifies how the
 %   residual norm is computed. The convergence cirterion also uses the 
 %   same configuration to compute the norm of B for assessing the relative
 %   residual norm RELRES.
@@ -79,6 +78,8 @@ function [x, varargout] = gmres4r(A, b, varargin)
 %
 %   [X,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC,XVEC] = GMRES4R(A,B,...) also 
 %   returns the successive approximate solutions.
+%
+%   Author: P. Matalon
 
     %% Argument processing
     
@@ -131,7 +132,6 @@ function [x, varargout] = gmres4r(A, b, varargin)
 
     if ~with_deflation
         % If no deflation space, then we apply the regular GMRES algorithm
-        %[x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, varargin{:});
         [x, varargout{1:nargout-1}] = wp_gmres4r(A, b, varargin{:});
     else
         % Initializations
@@ -178,43 +178,11 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
         end
     end
 
-%     if nargin < 3 || isempty(ML)
-%         ML = @(x) x;
-%     end
-%     if ~isa(ML, 'function_handle')
-%         if ~all(size(ML) == size(A))
-%             error('GMRES4R: The left preconditioner ML must have the same size as the matrix A.');
-%         end
-%     end
-% 
-%     no_MR = 0;
-%     if nargin < 4 || isempty(MR)
-%         no_MR = 1;
-%         MR = @(x) x;
-%     end
-%     if ~isa(MR, 'function_handle')
-%         if ~all(size(MR) == size(A))
-%             error('GMRES4R: The right preconditioner MR must have the same size as the matrix A.');
-%         end
-%     end
-
     if isa(A, 'function_handle')
         apply_A = @(x) A(x);
     else
         apply_A = @(x) A*x;
     end
-%     if isa(ML, 'function_handle')
-%         apply_ML = @(x) ML(x);
-%     else
-%         apply_ML = @(x) ML\x;
-%     end
-%     if isa(MR, 'function_handle')
-%         apply_MR = @(x) MR(x);
-%     else
-%         apply_MR = @(x) MR\x;
-%     end
-% 
-%     apply_M = @(x) apply_MR(apply_ML(x));
 
     restart = [];
     tol     = [];

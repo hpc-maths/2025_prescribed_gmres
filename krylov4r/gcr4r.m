@@ -1,9 +1,9 @@
 function [x, varargout] = gcr4r(A, b, varargin)
-%GCR   Generalized Conjugate Residual Method.
+%GCR4R   Generalized Conjugate Residual Method For Research.
 %   X = GCR4R(A,B) attempts to solve the system of linear equations A*X = B
 %   for X. The N-by-N coefficient matrix A must be square and the right
 %   hand side column vector B must have length N. This uses the unrestarted
-%   method with MIN(N,10) total iterations.
+%   method.
 %
 %   X = GCR4R(AFUN,B) accepts a function handle AFUN instead of the matrix
 %   A. AFUN(X) accepts a vector input X and returns the matrix-vector
@@ -19,22 +19,21 @@ function [x, varargout] = gcr4r(A, b, varargin)
 %   X = GCR4R(A,B,'maxit',MAXIT) specifies the maximum number of
 %   iterations.
 %
-%   X = GCR4R(A,B,HL) and X = GCR4R(A,B,HL,HR) use left and right 
+%   X = GCR4R(A,B,'left_prec',HL,'right_prec',HR) use left and right 
 %   preconditioners. If HL or HR is [] or unspecified then the corresponding
 %   preconditioner is not applied. They may be a function handle
 %   returning HL\X.
 %
-%   X = GCR4R(A,B,HL,HR,'weight',W) specifies the weight  
+%   X = GCR4R(A,B,'weight',W) specifies the weight  
 %   matrix defining the hermitian inner product used in the algorithm,
 %   computed by y'*W*x. W must be hermitian positive definite. 
 %   A function can also be passed, returning how W is applied to a vector.
 %   If W is [] or not specified, then identity is used.
 %
-%   X = GCR4R(A,B,HL,HR,'defl',Y,Z) specifies the deflation spaces.
+%   X = GCR4R(A,B,'defl',Y,Z) specifies the deflation spaces.
 %
-%   X = GCR4R(A,B,HL,HR,'guess',X0) specifies the first 
-%   initial guess. If X0 is [] or not specified, then GCR uses the default, 
-%   an all zero vector.
+%   X = GCR4R(A,B,'guess',X0) specifies the first initial guess. 
+%   If X0 is [] or not specified, then an all zero vector is used.
 %
 %   X = GCR4R(A,B,HL,HR,'res',OPT) specifies how the
 %   residual norm is computed. The convergence cirterion also uses the 
@@ -79,6 +78,8 @@ function [x, varargout] = gcr4r(A, b, varargin)
 %
 %   [X,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC,XVEC] = GCR4R(A,B,...) also 
 %   returns the successive approximate solutions.
+%
+%   Author: P. Matalon
 
     %% Argument processing
     
@@ -177,41 +178,11 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr4r(A, b, va
         end
     end
 
-%     if nargin < 3 || isempty(HL)
-%         HL = @(x) x;
-%     end
-%     if ~isa(HL, 'function_handle')
-%         if ~all(size(HL) == size(A))
-%             error('GCR: The left preconditioner HL must have the same size as the matrix A.');
-%         end
-%     end
-% 
-%     if nargin < 4 || isempty(HR)
-%         HR = @(x) x;
-%     end
-%     if ~isa(HR, 'function_handle')
-%         if ~all(size(HR) == size(A))
-%             error('GCR: The right preconditioner HR must have the same size as the matrix A.');
-%         end
-%     end
-
     if isa(A, 'function_handle')
         apply_A = @(x) A(x);
     else
         apply_A = @(x) A*x;
     end
-%     if isa(HL, 'function_handle')
-%         apply_HL = @(x) HL(x);
-%     else
-%         apply_HL = @(x) HL\x;
-%     end
-%     if isa(HR, 'function_handle')
-%         apply_HR = @(x) HR(x);
-%     else
-%         apply_HR = @(x) HR\x;
-%     end
-% 
-%     apply_H = @(x) apply_HR(apply_HL(x));
 
     restart = [];
     tol     = [];
