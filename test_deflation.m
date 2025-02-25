@@ -35,7 +35,7 @@ for i = 1:size(defl_space_dim, 2)
     Z = [real(VNM(:,1:2:m)), imag(VNM(:,1:2:m))];
     Y = A*Z;
     
-    [x,flag,relres,iter,resvec] = gcr4r(A, b, [], [], 'defl', Y, Z);
+    [x,flag,relres,iter,resvec] = gcr4r(A, b, 'defl', Y, Z);
     
     semilogy(axes, 0:length(resvec)-1, resvec/norm_b);
     lgd{i+1} = strcat('m = ', num2str(m));
@@ -61,7 +61,7 @@ for i = 1:size(defl_space_dim, 2)
     Z = [real(VNM(:,1:2:m)), imag(VNM(:,1:2:m))];
     Y = A*Z;
     
-    [x,flag,relres,iter,resvec] = gmres4r(A, b, [], [], 'defl', Y, Z);
+    [x,flag,relres,iter,resvec] = gmres4r(A, b, 'defl', Y, Z);
     
     semilogy(axes, 0:length(resvec)-1, resvec/norm_b);
     lgd{i+1} = strcat('m = ', num2str(m));

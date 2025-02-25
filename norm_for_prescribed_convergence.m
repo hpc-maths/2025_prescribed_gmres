@@ -43,11 +43,11 @@ M = W * diag(d) * W';
 
 %% GMRES in M-norm
 tol = 0;
-[~,~,~,~,absresvec] = gmres4r(A, b, [], [], 'tol', tol);
+[~,~,~,~,absresvec] = gmres4r(A, b, 'tol', tol);
 figure; axes = gca;
 semilogy(axes, 0:length(absresvec)-1, absresvec, 'Marker', 'square'); % GMRES
 hold(axes, 'on');
-[~,~,~,~,absresvec] = gmres4r(A, b, [], [], 'tol', tol, 'weight', M);
+[~,~,~,~,absresvec] = gmres4r(A, b, 'tol', tol, 'weight', M);
 semilogy(axes, 0:length(absresvec)-2, r(1:length(absresvec)-1), 'Marker', '+'); % prescribed
 semilogy(axes, 0:length(absresvec)-1, absresvec, 'Marker', 'o'); % GMRES in M-norm
 set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
@@ -59,11 +59,11 @@ P = W*diag(sqrt(d));
 PL = @(x) P'*x;
 PR = @(x) P'\x;
 tol = 0;
-[~,~,~,~,absresvec] = gmres4r(A, b, [], [], 'tol', tol);
+[~,~,~,~,absresvec] = gmres4r(A, b, 'tol', tol);
 figure; axes = gca;
 semilogy(axes, 0:length(absresvec)-1, absresvec, 'Marker', 'square'); % GMRES
 hold(axes, 'on');
-[~,~,~,~,absresvec] = gmres4r(A, b, PL, PR, 'tol', tol);
+[~,~,~,~,absresvec] = gmres4r(A, b, 'left_prec', PL, 'right_prec', PR, 'tol', tol);
 semilogy(axes, 0:length(absresvec)-2, r(1:length(absresvec)-1), 'Marker', '+'); % prescribed
 semilogy(axes, 0:length(absresvec)-1, absresvec, 'Marker', 'o'); % with preconditioner
 set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');

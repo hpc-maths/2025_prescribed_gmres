@@ -33,7 +33,7 @@ end
 %% -------------- Minimized norm
 
 %% HL
-[~,~,~,~,~,relresvec] = gcr4r(A, b, apply_H, [], 'tol', tol);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, 'left_prec', apply_H, 'tol', tol);
 
 figure; axes = gca; 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -43,7 +43,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% HR
-[~,~,~,~,~,relresvec] = gcr4r(A, b, [], apply_H, 'tol', tol);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, 'right_prec', apply_H, 'tol', tol);
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GCR - HL', 'GCR - HR');
@@ -51,7 +51,7 @@ legend(axes, 'GCR - HL', 'GCR - HR');
 %% -------------- Non-preconditioned residual norm
 
 %% HL
-[~,~,~,~,~,relresvec] = gcr4r(A, b, apply_H, [], 'tol', tol, 'res', '');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, 'left_prec', apply_H, 'tol', tol, 'res', '');
 
 figure; axes = gca; 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -61,7 +61,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% HR
-[~,~,~,~,~,relresvec] = gcr4r(A, b, [], apply_H, 'tol', tol, 'res', '');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, 'right_prec', apply_H, 'tol', tol, 'res', '');
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GCR - HL', 'GCR - HR');
@@ -72,7 +72,7 @@ legend(axes, 'GCR - HL', 'GCR - HR');
 %% -------------- Preconditioned residual norm
 
 %% GCR - HL
-[~,~,~,~,~,relresvec] = gcr4r(A, b, apply_H, [], 'tol', tol, 'res', 'l');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, 'left_prec', apply_H, 'tol', tol, 'res', 'l');
 
 figure; axes = gca; 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -82,7 +82,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR - HR
-[~,~,~,~,~,relresvec] = gcr4r(A, b, [], apply_H, 'tol', tol, 'res', 'r');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, 'right_prec', apply_H, 'tol', tol, 'res', 'r');
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GCR - HL', 'GCR - HR');
 

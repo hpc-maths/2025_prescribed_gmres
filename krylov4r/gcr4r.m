@@ -1,4 +1,4 @@
-function [x, varargout] = gcr4r(A, b, HL, HR, varargin)
+function [x, varargout] = gcr4r(A, b, varargin)
 %GCR   Generalized Conjugate Residual Method.
 %   X = GCR4R(A,B) attempts to solve the system of linear equations A*X = B
 %   for X. The N-by-N coefficient matrix A must be square and the right
@@ -81,13 +81,6 @@ function [x, varargout] = gcr4r(A, b, HL, HR, varargin)
 %   returns the successive approximate solutions.
 
     %% Argument processing
-
-    if nargin < 3
-        HL = [];
-    end
-    if nargin < 4
-        HR = [];
-    end
     
     % Deflation spaces
     with_deflation = 0;
@@ -138,7 +131,7 @@ function [x, varargout] = gcr4r(A, b, HL, HR, varargin)
 
     if ~with_deflation
         % If no deflation space, then we apply the regular GCR algorithm
-        [x, varargout{1:nargout-1}] = wp_gcr4r(A, b, HL, HR, varargin{:});
+        [x, varargout{1:nargout-1}] = wp_gcr4r(A, b, varargin{:});
     else
         % Initializations
         AZ = A*Z;
@@ -153,7 +146,7 @@ function [x, varargout] = gcr4r(A, b, HL, HR, varargin)
         PDb = apply_PD(b);
     
         % Solve deflated system with GCR
-        [x, varargout{1:nargout-1}] = wp_gcr4r(apply_PDA, PDb, HL, HR, varargin{:});
+        [x, varargout{1:nargout-1}] = wp_gcr4r(apply_PDA, PDb, varargin{:});
     
         % x = QD*x + (I-QD)x
         x = apply_QD(x) + Z*solve_YtAZ(Y'*b);
@@ -167,7 +160,7 @@ end
 %     Weighted Preconditioned GCR      %
 %           (no deflation)             %
 %  ----------------------------------  %
-function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr4r(A, b, HL, HR, varargin)
+function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr4r(A, b, varargin)
 
     %% Argument processing
 
@@ -184,45 +177,48 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr4r(A, b, HL
         end
     end
 
-    if nargin < 3 || isempty(HL)
-        HL = @(x) x;
-    end
-    if ~isa(HL, 'function_handle')
-        if ~all(size(HL) == size(A))
-            error('GCR: The left preconditioner HL must have the same size as the matrix A.');
-        end
-    end
-
-    if nargin < 4 || isempty(HR)
-        HR = @(x) x;
-    end
-    if ~isa(HR, 'function_handle')
-        if ~all(size(HR) == size(A))
-            error('GCR: The right preconditioner HR must have the same size as the matrix A.');
-        end
-    end
+%     if nargin < 3 || isempty(HL)
+%         HL = @(x) x;
+%     end
+%     if ~isa(HL, 'function_handle')
+%         if ~all(size(HL) == size(A))
+%             error('GCR: The left preconditioner HL must have the same size as the matrix A.');
+%         end
+%     end
+% 
+%     if nargin < 4 || isempty(HR)
+%         HR = @(x) x;
+%     end
+%     if ~isa(HR, 'function_handle')
+%         if ~all(size(HR) == size(A))
+%             error('GCR: The right preconditioner HR must have the same size as the matrix A.');
+%         end
+%     end
 
     if isa(A, 'function_handle')
         apply_A = @(x) A(x);
     else
         apply_A = @(x) A*x;
     end
-    if isa(HL, 'function_handle')
-        apply_HL = @(x) HL(x);
-    else
-        apply_HL = @(x) HL\x;
-    end
-    if isa(HR, 'function_handle')
-        apply_HR = @(x) HR(x);
-    else
-        apply_HR = @(x) HR\x;
-    end
-
-    apply_H = @(x) apply_HR(apply_HL(x));
+%     if isa(HL, 'function_handle')
+%         apply_HL = @(x) HL(x);
+%     else
+%         apply_HL = @(x) HL\x;
+%     end
+%     if isa(HR, 'function_handle')
+%         apply_HR = @(x) HR(x);
+%     else
+%         apply_HR = @(x) HR\x;
+%     end
+% 
+%     apply_H = @(x) apply_HR(apply_HL(x));
 
     restart = [];
     tol     = [];
     maxit   = [];
+
+    HL = [];
+    HR = [];
 
     W = [];
     x0 = [];
@@ -242,6 +238,10 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr4r(A, b, HL
             tol = varargin{i+1};
         elseif strcmp(varargin{i}, 'maxit')
             maxit = varargin{i+1};
+        elseif strcmp(varargin{i}, 'left_prec')
+            HL = varargin{i+1};
+        elseif strcmp(varargin{i}, 'right_prec')
+            HR = varargin{i+1};
         elseif strcmp(varargin{i}, 'weight')
             W = varargin{i+1};
         elseif strcmp(varargin{i}, 'guess')
@@ -281,6 +281,37 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr4r(A, b, HL
     else
         maxouter = ceil(maxit/restart);
     end
+
+    if isempty(HL)
+        HL = @(x) x;
+    end
+    if ~isa(HL, 'function_handle')
+        if ~all(size(HL) == size(A))
+            error('GCR: The left preconditioner HL must have the same size as the matrix A.');
+        end
+    end
+
+    if isempty(HR)
+        HR = @(x) x;
+    end
+    if ~isa(HR, 'function_handle')
+        if ~all(size(HR) == size(A))
+            error('GCR: The right preconditioner HR must have the same size as the matrix A.');
+        end
+    end
+
+    if isa(HL, 'function_handle')
+        apply_HL = @(x) HL(x);
+    else
+        apply_HL = @(x) HL\x;
+    end
+    if isa(HR, 'function_handle')
+        apply_HR = @(x) HR(x);
+    else
+        apply_HR = @(x) HR\x;
+    end
+
+    apply_H = @(x) apply_HR(apply_HL(x));
 
     if isempty(W)
         dot_W = @(x,y) y'*x;

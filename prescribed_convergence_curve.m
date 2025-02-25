@@ -43,7 +43,7 @@ condest(B)
 
 %% GMRES
 tol = 0;
-[~,~,~,~,absresvec] = gmres4r(A, b, [], tol);
+[~,~,~,~,absresvec] = gmres4r(A, b, 'tol', tol);
 figure; axes = gca;
 semilogy(axes, 0:length(absresvec)-2, r, 'Marker', '+');
 hold(axes, 'on');

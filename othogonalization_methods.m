@@ -30,7 +30,7 @@ end
 
 
 %% -------------- GCR - Gram-Schmidt
-[~,~,~,~,~,relresvec] = gcr4r(A, b, apply_H, [], 'orthog_algo', 'gs');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, 'left_prec', apply_H, 'orthog_algo', 'gs');
 
 figure; axes = gca; 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -39,15 +39,15 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% -------------- GCR - Gram-Schmidt (2)
-[~,~,~,~,~,relresvec] = gcr4r(A, b, apply_H, [], 'orthog_algo', 'gs', 'orthog_steps', 2);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, 'left_prec', apply_H, 'orthog_algo', 'gs', 'orthog_steps', 2);
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', '+');
 
 %% -------------- GCR - Modified Gram-Schmidt
-[~,~,~,~,~,relresvec] = gcr4r(A, b, apply_H, [], 'orthog_algo', 'mgs');
+[~,~,~,~,~,relresvec] = gcr4r(A, b, 'left_prec', apply_H, 'orthog_algo', 'mgs');
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', '+');
 
 %% -------------- GCR - Modified Gram-Schmidt (2)
-[~,~,~,~,~,relresvec] = gcr4r(A, b, apply_H, [], 'orthog_algo', 'mgs', 'orthog_steps', 2);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, 'left_prec', apply_H, 'orthog_algo', 'mgs', 'orthog_steps', 2);
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'square');
 
 %% -------------- GMRES (matlab)
@@ -70,7 +70,7 @@ legend(axes, 'GCR - GS', 'GCR - GS (2x)', 'GCR - MGS', 'GCR - MGS (2x)', 'GMRES 
 
 
 %% -------------- GMRES - Gram-Schmidt
-[~,~,~,~,~,relresvec] = gmres4r(A, b, apply_H, [], 'orthog_algo', 'gs');
+[~,~,~,~,~,relresvec] = gmres4r(A, b, 'left_prec', apply_H, 'orthog_algo', 'gs');
 
 figure; axes = gca; 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'o');
@@ -79,15 +79,15 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% -------------- GMRES - Gram-Schmidt (2)
-[~,~,~,~,~,relresvec] = gmres4r(A, b, apply_H, [], 'orthog_algo', 'gs', 'orthog_steps', 2);
+[~,~,~,~,~,relresvec] = gmres4r(A, b, 'left_prec', apply_H, 'orthog_algo', 'gs', 'orthog_steps', 2);
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', '+');
 
 %% -------------- GMRES - Modified Gram-Schmidt
-[~,~,~,~,~,relresvec] = gmres4r(A, b, apply_H, [], 'orthog_algo', 'mgs');
+[~,~,~,~,~,relresvec] = gmres4r(A, b, 'left_prec', apply_H, 'orthog_algo', 'mgs');
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', '+');
 
 %% -------------- GMRES - Modified Gram-Schmidt (2)
-[~,~,~,~,~,relresvec] = gmres4r(A, b, apply_H, [], 'orthog_algo', 'mgs', 'orthog_steps', 2);
+[~,~,~,~,~,relresvec] = gmres4r(A, b, 'left_prec', apply_H, 'orthog_algo', 'mgs', 'orthog_steps', 2);
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'square');
 
 %% -------------- GMRES (matlab)

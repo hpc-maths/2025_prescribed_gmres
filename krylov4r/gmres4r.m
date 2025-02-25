@@ -1,4 +1,4 @@
-function [x, varargout] = gmres4r(A, b, ML, MR, varargin)
+function [x, varargout] = gmres4r(A, b, varargin)
 %GMRES4R   Generalized Minimal Residual Method.
 %   X = GMRES4R(A,B) attempts to solve the system of linear equations A*X = B
 %   for X. The N-by-N coefficient matrix A must be square and the right
@@ -81,13 +81,6 @@ function [x, varargout] = gmres4r(A, b, ML, MR, varargin)
 %   returns the successive approximate solutions.
 
     %% Argument processing
-
-    if nargin < 3
-        ML = [];
-    end
-    if nargin < 4
-        MR = [];
-    end
     
     % Deflation spaces
     with_deflation = 0;
@@ -138,8 +131,8 @@ function [x, varargout] = gmres4r(A, b, ML, MR, varargin)
 
     if ~with_deflation
         % If no deflation space, then we apply the regular GMRES algorithm
-        %[x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, ML, MR, varargin{:});
-        [x, varargout{1:nargout-1}] = wp_gmres4r(A, b, ML, MR, varargin{:});
+        %[x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, varargin{:});
+        [x, varargout{1:nargout-1}] = wp_gmres4r(A, b, varargin{:});
     else
         % Initializations
         AZ = A*Z;
@@ -154,7 +147,7 @@ function [x, varargout] = gmres4r(A, b, ML, MR, varargin)
         PDb = apply_PD(b);
     
         % Solve deflated system with GMRES
-        [x, varargout{1:nargout-1}] = wp_gmres4r(apply_PDA, PDb, ML, MR, varargin{:});
+        [x, varargout{1:nargout-1}] = wp_gmres4r(apply_PDA, PDb, varargin{:});
     
         % x = QD*x + (I-QD)x
         x = apply_QD(x) + Z*solve_YtAZ(Y'*b);
@@ -168,7 +161,7 @@ end
 %     Weighted Preconditioned GMRES      %
 %           (no deflation)               %
 %  ------------------------------------  %
-function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, ML, MR, varargin)
+function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, varargin)
 
     %% Argument processing
 
@@ -185,47 +178,50 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
         end
     end
 
-    if nargin < 3 || isempty(ML)
-        ML = @(x) x;
-    end
-    if ~isa(ML, 'function_handle')
-        if ~all(size(ML) == size(A))
-            error('GMRES4R: The left preconditioner ML must have the same size as the matrix A.');
-        end
-    end
-
-    no_MR = 0;
-    if nargin < 4 || isempty(MR)
-        no_MR = 1;
-        MR = @(x) x;
-    end
-    if ~isa(MR, 'function_handle')
-        if ~all(size(MR) == size(A))
-            error('GMRES4R: The right preconditioner MR must have the same size as the matrix A.');
-        end
-    end
+%     if nargin < 3 || isempty(ML)
+%         ML = @(x) x;
+%     end
+%     if ~isa(ML, 'function_handle')
+%         if ~all(size(ML) == size(A))
+%             error('GMRES4R: The left preconditioner ML must have the same size as the matrix A.');
+%         end
+%     end
+% 
+%     no_MR = 0;
+%     if nargin < 4 || isempty(MR)
+%         no_MR = 1;
+%         MR = @(x) x;
+%     end
+%     if ~isa(MR, 'function_handle')
+%         if ~all(size(MR) == size(A))
+%             error('GMRES4R: The right preconditioner MR must have the same size as the matrix A.');
+%         end
+%     end
 
     if isa(A, 'function_handle')
         apply_A = @(x) A(x);
     else
         apply_A = @(x) A*x;
     end
-    if isa(ML, 'function_handle')
-        apply_ML = @(x) ML(x);
-    else
-        apply_ML = @(x) ML\x;
-    end
-    if isa(MR, 'function_handle')
-        apply_MR = @(x) MR(x);
-    else
-        apply_MR = @(x) MR\x;
-    end
-
-    apply_M = @(x) apply_MR(apply_ML(x));
+%     if isa(ML, 'function_handle')
+%         apply_ML = @(x) ML(x);
+%     else
+%         apply_ML = @(x) ML\x;
+%     end
+%     if isa(MR, 'function_handle')
+%         apply_MR = @(x) MR(x);
+%     else
+%         apply_MR = @(x) MR\x;
+%     end
+% 
+%     apply_M = @(x) apply_MR(apply_ML(x));
 
     restart = [];
     tol     = [];
     maxit   = [];
+
+    ML = [];
+    MR = [];
     
     W = [];
     x0 = [];
@@ -246,6 +242,10 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
             tol = varargin{j+1};
         elseif strcmp(varargin{j}, 'maxit')
             maxit = varargin{j+1};
+        elseif strcmp(varargin{j}, 'left_prec')
+            ML = varargin{j+1};
+        elseif strcmp(varargin{j}, 'right_prec')
+            MR = varargin{j+1};
         elseif strcmp(varargin{j}, 'weight')
             W = varargin{j+1};
         elseif strcmp(varargin{j}, 'guess')
@@ -285,6 +285,40 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     else
         maxouter = ceil(maxit/restart);
     end
+
+    if isempty(ML)
+        ML = @(x) x;
+    end
+    if ~isa(ML, 'function_handle')
+        if ~all(size(ML) == size(A))
+            error('GMRES4R: The left preconditioner ML must have the same size as the matrix A.');
+        end
+    end
+
+    no_MR = 0;
+    if isempty(MR)
+        no_MR = 1;
+        MR = @(x) x;
+    end
+    if ~isa(MR, 'function_handle')
+        if ~all(size(MR) == size(A))
+            error('GMRES4R: The right preconditioner MR must have the same size as the matrix A.');
+        end
+    end
+
+    if isa(ML, 'function_handle')
+        apply_ML = @(x) ML(x);
+    else
+        apply_ML = @(x) ML\x;
+    end
+    if isa(MR, 'function_handle')
+        apply_MR = @(x) MR(x);
+    else
+        apply_MR = @(x) MR\x;
+    end
+
+    apply_M = @(x) apply_MR(apply_ML(x));
+
 
     no_W = 0;
     if isempty(W)

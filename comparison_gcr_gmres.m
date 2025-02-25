@@ -37,7 +37,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[~,~,~,~,resvec] = gcr4r(A, b, [], [], 'restart', restart, 'tol', tol);
+[~,~,~,~,resvec] = gcr4r(A, b, 'restart', restart, 'tol', tol);
 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_b, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES','GCR');
@@ -55,7 +55,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[~,~,~,~,resvec] = gcr4r(A, b, HL, [], 'restart', restart, 'tol', tol);
+[~,~,~,~,resvec] = gcr4r(A, b, 'left_prec', HL, 'restart', restart, 'tol', tol);
 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_HLb, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES (matlab)','GCR');
@@ -74,7 +74,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[~,~,~,~,resvec] = gcr4r(A, b, [], HR, 'restart', restart, 'tol', tol, 'res', 'r'); % Since gmres includes the right prec in the residual, we do it too
+[~,~,~,~,resvec] = gcr4r(A, b, 'right_prec', HR, 'restart', restart, 'tol', tol, 'res', 'r'); % Since gmres includes the right prec in the residual, we do it too
 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_HRb, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES (matlab)','GCR');
@@ -93,7 +93,7 @@ set(axes, 'XGrid','off', 'YGrid','on', 'YMinorGrid','off');
 hold(axes, 'on');
 
 %% GCR
-[~,~,~,~,resvec] = gcr4r(A, b, HL, HR, 'restart', restart, 'tol', tol, 'res', 'lr'); % Since gmres includes the right prec in the residual, we do it too
+[~,~,~,~,resvec] = gcr4r(A, b, 'left_prec', HL, 'right_prec', HR, 'restart', restart, 'tol', tol, 'res', 'lr'); % Since gmres includes the right prec in the residual, we do it too
 
 semilogy(axes, 0:length(resvec)-1, resvec/norm_Hb, 'Marker', 'x', 'LineStyle', '--');
 legend('GMRES (matlab)','GCR');

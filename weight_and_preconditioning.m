@@ -33,7 +33,7 @@ end
 
 %% HL
 W = H;
-[~,~,~,~,~,relresvec] = gcr4r(A, b, apply_H, [], 'tol', tol, 'weight', W);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, 'left_prec', apply_H, 'tol', tol, 'weight', W);
 
 
 figure; axes = gca; 
@@ -44,7 +44,7 @@ hold(axes, 'on');
 
 %% HR
 apply_W = apply_H;
-[~,~,~,~,~,relresvec] = gcr4r(A, b, [], apply_H, 'tol', tol, 'weight', apply_W);
+[~,~,~,~,~,relresvec] = gcr4r(A, b, 'right_prec', apply_H, 'tol', tol, 'weight', apply_W);
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GCR - HL, W=H^{-1}', 'GCR - HR, W=H');
@@ -53,7 +53,7 @@ legend(axes, 'GCR - HL, W=H^{-1}', 'GCR - HR, W=H');
 
 %% HL
 W = H;
-[~,~,~,~,~,relresvec] = gmres4r(A, b, apply_H, [], 'tol', tol, 'weight', W);
+[~,~,~,~,~,relresvec] = gmres4r(A, b, 'left_prec', apply_H, 'tol', tol, 'weight', W);
 
 
 figure; axes = gca; 
@@ -64,7 +64,7 @@ hold(axes, 'on');
 
 %% HR
 apply_W = apply_H;
-[~,~,~,~,~,relresvec] = gmres4r(A, b, [], apply_H, 'tol', tol, 'weight', apply_W);
+[~,~,~,~,~,relresvec] = gmres4r(A, b, 'right_prec', apply_H, 'tol', tol, 'weight', apply_W);
 
 semilogy(axes, 0:length(relresvec)-1, relresvec, 'Marker', 'x');
 legend(axes, 'GMRES - HL, W=H^{-1}', 'GMRES - HR, W=H');
