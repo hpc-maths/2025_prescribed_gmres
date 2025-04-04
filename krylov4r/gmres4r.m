@@ -609,7 +609,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
         xvec = xvec(:, 1:iter+1);
     end
 
-    if flag == FLAG_DIVERGENCE
+    if flag == FLAG_DIVERGENCE && tol > 0
         warning(['GMRES4R: the given tolerance could not be reached (maxit=' num2str(maxit) ').']);
     end
 end
