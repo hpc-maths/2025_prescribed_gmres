@@ -1,5 +1,10 @@
 addpath('krylov4r');
 
+%% ------------------------------------------------------------------------
+% This script builds a system realizing a prescribed convergence curve
+%  with GMRES.
+% -------------------------------------------------------------------------
+
 n = 10;
 
 % Prescribed residual norms

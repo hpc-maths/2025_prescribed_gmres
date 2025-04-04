@@ -54,8 +54,9 @@ function [x, varargout] = gmres4r(A, b, varargin)
 %   [X,FLAG] = GMRES4R(A,B,...) also returns a convergence FLAG:
 %    0 GMRES4R converged to the desired tolerance TOL within MAXIT iterations.
 %    1 GMRES4R iterated MAXIT times but did not converge.
-%    2 preconditioner ML or MR was ill-conditioned.
-%    3 a breakdown occurred.
+%    2 a breakdown occurred.
+%    3 preconditioner ML or MR caused an issue (e.g. generated Inf values).
+%    4 weight matrix W caused an issue (e.g. not positive definite).
 %
 %   [X,FLAG,RELRES] = GMRES4R(A,B,...) also returns the relative residual
 %   NORM(B-A*X)/NORM(B). If FLAG is 0, then RELRES <= TOL. Note that with
@@ -343,6 +344,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     %% Memory allocation
 
     % Successive residual norms
+    relres = inf;
     if nargout >= ARGOUT_ABSRESVEC
         absresvec = zeros(maxit+1, 1); % absolute
     end
@@ -371,10 +373,11 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
 
     %% Iterations
 
-    FLAG_CONVERGENCE = 0;
-    FLAG_DIVERGENCE  = 1;
-    FLAG_PREC_ISSUE  = 2;
-    FLAG_BREAKDOWN   = 3;
+    FLAG_CONVERGENCE  = 0;
+    FLAG_DIVERGENCE   = 1;
+    FLAG_BREAKDOWN    = 2;
+    FLAG_PREC_ISSUE   = 3;
+    FLAG_WEIGHT_ISSUE = 4;
 
     iter = 0;
     flag = FLAG_DIVERGENCE;
@@ -477,6 +480,11 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
                 end
             end
             norm_v_jp1 = norm_W(v(:,j+1));
+            if (~isreal(norm_v_jp1))
+                warning(['GMRES4R: a complex weighted norm was computed at iteration ' num2str(iter) ': the weight matrix is not positive definite!']);
+                flag = FLAG_WEIGHT_ISSUE;
+                break;
+            end
             H(j+1,j) = norm_v_jp1;
 
             %% Minimization by QR factorization
