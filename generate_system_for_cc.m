@@ -1,4 +1,4 @@
-function [A,b] = generate_system_for_cc(r_norms, lambda)
+function [A,b] = generate_system_for_cc(r_norms, lambda, W)
     n = length(r_norms);
 
     % Residual decrease vector associated to the given convergence curve
@@ -9,8 +9,10 @@ function [A,b] = generate_system_for_cc(r_norms, lambda)
     g(n) = r_norms(end);
     
     % Orthonormal basis
-    %W = gallery('orthog', n, 4);
-    W = eye(n, n);
+    if nargin < 2 || isempty(W)
+        %W = gallery('orthog', n, 4);
+        W = eye(n, n);
+    end
     
     % Right-hand side
     b = W*g;

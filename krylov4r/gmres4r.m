@@ -21,8 +21,8 @@ function [x, varargout] = gmres4r(A, b, varargin)
 %
 %   GMRES4R(A,B,'left_prec',ML,'right_prec',MR) use left and right 
 %   preconditioners. If ML or MR is [] or unspecified, then the corresponding
-%   preconditioner is not applied. They may be a function handle
-%   returning ML\X.
+%   preconditioner is not applied. If ML is a matrix, then ML\X is applied to
+%   vectors X. If it is a function handle, then it is simply applied to X.
 %
 %   X = GMRES4R(A,B,'weight',W) specifies the weight  
 %   matrix defining the hermitian inner product used in the algorithm,
@@ -258,7 +258,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
     if isempty(ML)
         ML = @(x) x;
     end
-    if ~isa(ML, 'function_handle')
+    if ~isa(ML, 'function_handle') && ~isa(A, 'function_handle')
         if ~all(size(ML) == size(A))
             error('GMRES4R: The left preconditioner ML must have the same size as the matrix A.');
         end
@@ -270,7 +270,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gmres4r(A, b, 
         MR = @(x) x;
     end
     if ~isa(MR, 'function_handle')
-        if ~all(size(MR) == size(A))
+        if ~all(size(MR) == size(A)) && ~isa(A, 'function_handle')
             error('GMRES4R: The right preconditioner MR must have the same size as the matrix A.');
         end
     end

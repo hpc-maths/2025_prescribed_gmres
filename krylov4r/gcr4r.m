@@ -21,8 +21,8 @@ function [x, varargout] = gcr4r(A, b, varargin)
 %
 %   X = GCR4R(A,B,'left_prec',HL,'right_prec',HR) use left and right 
 %   preconditioners. If HL or HR is [] or unspecified then the corresponding
-%   preconditioner is not applied. They may be a function handle
-%   returning HL\X.
+%   preconditioner is not applied. If HL is a matrix, then HL\X is applied to
+%   vectors X. If it is a function handle, then it is simply applied to X.
 %
 %   X = GCR4R(A,B,'weight',W) specifies the weight  
 %   matrix defining the hermitian inner product used in the algorithm,
@@ -486,7 +486,7 @@ function [x, flag, relres, iter, absresvec, relresvec, xvec] = wp_gcr4r(A, b, va
         xvec = xvec(:, 1:iter+1);
     end
 
-    if flag == FLAG_DIVERGENCE
+    if flag == FLAG_DIVERGENCE && tol > 0
         warning(['GCR: the given tolerance could not be reached (maxit=' num2str(maxit) ').']);
     end
 end

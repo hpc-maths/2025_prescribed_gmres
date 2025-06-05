@@ -3,19 +3,19 @@ addpath('test_cases');
 
 %% ------------------------------------------------------------------------
 % This script implements, for a given system (A,b) and a prescribed convergence curve
-% - a weight matrix with which weighted GMRES realizes that convervence curve
+% - a weight matrix with which weighted GMRES realizes that convervence curve (Th. 4)
 % - a split preconditioner with which GMRES realizes that convergence curve.
 % -------------------------------------------------------------------------
 
 close all
 
 %% Given system
-%A = convdiff(5, 0.01); % Convection diffusion problem
-A = jordan_block(20, 0.7);
+A = convdiff(5, 0.01); % Convection diffusion problem
+%A = jordan_block(20, 0.7);
 b = ones(size(A, 1), 1);
 
 n = size(A,1);
-m = n; % breakdown index
+m = 15; % breakdown index
 
 %% Prescribed convergence curve for M-GMRES and prec. GMRES
 r = zeros(m,1);
@@ -51,20 +51,7 @@ W = [W, null(W')]; % Im(W)+Ker(W') = R^n
 g = W'*b;
 
 % Matrix T such that g = T g_tilde
-T = speye(n, n);
-for i=1:m
-    if g(i) ~= 0 && g_tilde(i) > 0
-        T(i,i) = g(i)/g_tilde(i);
-    elseif g(i) == 0 && g_tilde(i) == 0
-        T(i,i) = 1;
-    elseif g(i) == 0 && g_tilde(i) > 0
-        T(i,i) = -g(m)/g_tilde(i);
-        T(i,m) = 1;
-    else
-        T(i,i) = g(i)/g_tilde(m); % it says 1 in the paper, but it could be anything, we choose this for conditioning
-        T(i,m) = g(i)/g_tilde(m);
-    end
-end
+T = build_T(g, g_tilde, n);
 
 % Weight matrix M = (WT(WT)')^(-1)
 P = W*T;
