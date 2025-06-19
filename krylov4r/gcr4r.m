@@ -1,85 +1,85 @@
 function [x, varargout] = gcr4r(A, b, varargin)
-%GCR4R   Generalized Conjugate Residual Method For Research.
-%   X = GCR4R(A,B) attempts to solve the system of linear equations A*X = B
-%   for X. The N-by-N coefficient matrix A must be square and the right
-%   hand side column vector B must have length N. This uses the unrestarted
+%gcr4r   Generalized Conjugate Residual Method (GCR) For Research.
+%   x = gcr4r(A,b) attempts to solve the system of linear equations A*x = b
+%   for x. The N-by-N coefficient matrix A must be square and the right
+%   hand side column vector b must have length N. This uses the unrestarted
 %   method.
 %
-%   X = GCR4R(AFUN,B) accepts a function handle AFUN instead of the matrix
-%   A. AFUN(X) accepts a vector input X and returns the matrix-vector
-%   product A*X. In all of the following syntaxes, you can replace A by
+%   x = gcr4r(AFUN,b) accepts a function handle AFUN instead of the matrix
+%   A. AFUN(x) accepts a vector input x and returns the matrix-vector
+%   product A*x. In all of the following syntaxes, you can replace A by
 %   AFUN.
 %
-%   X = GCR4R(A,B,'restart',RESTART) restarts the method every RESTART iterations.
+%   x = gcr4r(A,b,'restart',RESTART) restarts the method every RESTART iterations.
 %   If RESTART is [] or specified, then the unrestarted method is used, as above.
 %
-%   X = GCR4R(A,B,'tol',TOL) specifies the tolerance of the method. If
+%   x = gcr4r(A,b,'tol',TOL) specifies the tolerance of the method. If
 %   TOL is [] or not specified, then the default value, 1e-12, is used.
 %
-%   X = GCR4R(A,B,'maxit',MAXIT) specifies the maximum number of
+%   x = gcr4r(A,b,'maxit',MAXIT) specifies the maximum number of
 %   iterations.
 %
-%   X = GCR4R(A,B,'left_prec',HL,'right_prec',HR) use left and right 
+%   x = gcr4r(A,b,'left_prec',HL,'right_prec',HR) use left and right 
 %   preconditioners. If HL or HR is [] or unspecified then the corresponding
-%   preconditioner is not applied. If HL is a matrix, then HL\X is applied to
-%   vectors X. If it is a function handle, then it is simply applied to X.
+%   preconditioner is not applied. If HL is a matrix, then HL\x is applied to
+%   vectors x. If it is a function handle, then it is simply applied to x.
 %
-%   X = GCR4R(A,B,'weight',W) specifies the weight  
+%   x = gcr4r(A,b,'weight',W) specifies the weight  
 %   matrix defining the hermitian inner product used in the algorithm,
 %   computed by y'*W*x. W must be hermitian positive definite. 
 %   A function can also be passed, returning how W is applied to a vector.
 %   If W is [] or not specified, then identity is used.
 %
-%   X = GCR4R(A,B,'defl',Y,Z) specifies the deflation spaces.
+%   x = gcr4r(A,b,'defl',Y,Z) specifies the deflation spaces.
 %
-%   X = GCR4R(A,B,'guess',X0) specifies the first initial guess. 
-%   If X0 is [] or not specified, then an all zero vector is used.
+%   x = gcr4r(A,b,'guess',x0) specifies the first initial guess. 
+%   If x0 is [] or not specified, then an all zero vector is used.
 %
-%   X = GCR4R(A,B,HL,HR,'res',OPT) specifies how the
+%   x = gcr4r(A,b,HL,HR,'res',OPT) specifies how the
 %   residual norm is computed. The convergence cirterion also uses the 
-%   same configuration to compute the norm of B for assessing the relative
+%   same configuration to compute the norm of b for assessing the relative
 %   residual norm RELRES.
-%   OPT='l': HL is applied: RELRES=norm(HL\R)/norm(HL\B)
-%   OPT='r': HR is applied: RELRES=norm(HR\R)/norm(HR\B)
+%   OPT='l': HL is applied: RELRES=norm(HL\r)/norm(HL\b)
+%   OPT='r': HR is applied: RELRES=norm(HR\r)/norm(HR\b)
 %   OPT='w': the W-norm is used.
-%   OPT='' : RELRES=norm(R)/norm(B) 
+%   OPT='' : RELRES=norm(r)/norm(b) 
 %   Option combinations are allowed.
 %   The default value depends on the presence of HL, HR, W, so that the
 %   residual corresponds to the one that is minimized by the algorithm.
 %   Examples:
-%   If HL is provided, or HL and HR, then RELRES=norm(HL\R)/norm(HL\B).
-%   If HR only, then RELRES=norm(R)/norm(B).
+%   If HL is provided, or HL and HR, then RELRES=norm(HL\r)/norm(HL\b).
+%   If HR only, then RELRES=norm(r)/norm(b).
 %   If W is provided, then the W-norm is used.
 %
-%   [X,FLAG] = GCR4R(A,B,...) also returns a convergence FLAG:
+%   [x,FLAG] = gcr4r(A,b,...) also returns a convergence FLAG:
 %    0 GCR converged to the desired tolerance TOL within MAXIT iterations.
 %    1 GCR iterated MAXIT times but did not converge.
 %    2 preconditioner HL or HR was ill-conditioned.
 %    3 a breakdown occurred.
 %
-%   [X,FLAG,RELRES] = GCR4R(A,B,...) also returns the relative residual
-%   NORM(B-A*X)/NORM(B). If FLAG is 0, then RELRES <= TOL. Note that with
+%   [x,FLAG,RELRES] = gcr4r(A,b,...) also returns the relative residual
+%   NORM(b-A*x)/NORM(b). If FLAG is 0, then RELRES <= TOL. Note that with
 %   preconditioners the preconditioned relative residual may be used.
 %   See argument 'res' for details.
 %
-%   [X,FLAG,RELRES,ITER] = GCR4R(A,B,...) also returns both the iteration
-%   number at which X was computed: 0 <= ITER <= MAXIT.
+%   [x,FLAG,RELRES,ITER] = gcr4r(A,b,...) also returns both the iteration
+%   number at which x was computed: 0 <= ITER <= MAXIT.
 %
-%   [X,FLAG,RELRES,ITER,ABSRESVEC] = GCR4R(A,B,...) also returns a vector of
+%   [x,FLAG,RELRES,ITER,ABSRESVEC] = gcr4r(A,b,...) also returns a vector of
 %   the absolute residual norms at each iteration.
 %   See argument 'res' for detail on how ABSRESVEC is computed according
 %   to the presence of preconditioners and weighted norm.
 %
-%   [X,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC] = GCR4R(A,B,...) also returns a 
+%   [x,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC] = gcr4r(A,b,...) also returns a 
 %   vector of the relative residual norms at each iteration, used as 
 %   convergence criterion.
 %   See argument 'res' for detail on how RELRESVEC is computed according
 %   to the presence of preconditioners and weighted norm.
 %
-%   [X,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC,XVEC] = GCR4R(A,B,...) also 
+%   [x,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC,XVEC] = gcr4r(A,b,...) also 
 %   returns the successive approximate solutions.
 %
-%   Author: P. Matalon
+%   Author: P. Matalon, N. Spillane
 
     %% Argument processing
     

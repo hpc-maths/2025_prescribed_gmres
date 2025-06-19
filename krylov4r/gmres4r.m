@@ -1,86 +1,86 @@
 function [x, varargout] = gmres4r(A, b, varargin)
-%GMRES4R   Generalized Minimal Residual Method For Research.
-%   X = GMRES4R(A,B) attempts to solve the system of linear equations A*X = B
-%   for X. The N-by-N coefficient matrix A must be square and the right
-%   hand side column vector B must have length N. This uses the unrestarted
+%gmres4r   Generalized Minimal Residual Method (GMRES) For Research.
+%   x = gmres4r(A,b) attempts to solve the system of linear equations A*x = b
+%   for x. The n-by-n coefficient matrix A must be square and the right
+%   hand side column vector b must have length n. This uses the unrestarted
 %   method.
 %
-%   X = GMRES4R(AFUN,B) accepts a function handle AFUN instead of the matrix
-%   A. AFUN(X) accepts a vector input X and returns the matrix-vector
-%   product A*X. In all of the following syntaxes, you can replace A by
+%   x = gmres4r(AFUN,b) accepts a function handle AFUN instead of the matrix
+%   A. AFUN(x) accepts a vector input x and returns the matrix-vector
+%   product A*x. In all of the following syntaxes, you can replace A by
 %   AFUN.
 %
-%   X = GMRES4R(A,B,'restart',RESTART) restarts the method every RESTART iterations.
+%   x = gmres4r(A,b,'restart',RESTART) restarts the method every RESTART iterations.
 %   If RESTART is [] then the unrestarted method is used.
 %
-%   X = GMRES4R(A,B,'tol',TOL) specifies the tolerance of the method. If
+%   x = gmres4r(A,b,'tol',TOL) specifies the tolerance of the method. If
 %   TOL is [] then the default value, 1e-12 is used.
 %
-%   X = GMRES4R(A,B,'maxit',MAXIT) specifies the maximum number of
+%   x = gmres4r(A,b,'maxit',MAXIT) specifies the maximum number of
 %   iterations.
 %
-%   GMRES4R(A,B,'left_prec',ML,'right_prec',MR) use left and right 
+%   gmres4r(A,b,'left_prec',ML,'right_prec',MR) use left and right 
 %   preconditioners. If ML or MR is [] or unspecified, then the corresponding
-%   preconditioner is not applied. If ML is a matrix, then ML\X is applied to
-%   vectors X. If it is a function handle, then it is simply applied to X.
+%   preconditioner is not applied. If ML is a matrix, then ML\x is applied to
+%   vectors x. If it is a function handle, then it is simply applied to x.
 %
-%   X = GMRES4R(A,B,'weight',W) specifies the weight  
+%   x = gmres4r(A,b,'weight',W) specifies the weight  
 %   matrix defining the hermitian inner product used in the algorithm,
 %   computed by y'*W*x. W must be hermitian positive definite. 
 %   A function can also be passed, returning how W is applied to a vector.
 %   If W is [] or not specified, then identity is used.
 %
-%   X = GMRES4R(A,B,'defl',Y,Z) specifies the deflation spaces.
+%   x = gmres4r(A,b,'defl',Y,Z) specifies the deflation spaces.
 %
-%   X = GMRES4R(A,B,'guess',X0) specifies the first initial guess. 
-%   If X0 is [] or not specified, then an all zero vector is used.
+%   x = gmres4r(A,b,'guess',x0) specifies the first initial guess. 
+%   If x0 is [] or not specified, then an all zero vector is used.
 %
-%   X = GMRES4R(A,B,'res',OPT) specifies how the
+%   x = gmres4r(A,b,'res',OPT) specifies how the
 %   residual norm is computed. The convergence cirterion also uses the 
-%   same configuration to compute the norm of B for assessing the relative
+%   same configuration to compute the norm of b for assessing the relative
 %   residual norm RELRES.
-%   OPT='l': ML is applied: RELRES=norm(ML\R)/norm(ML\B)
-%   OPT='r': MR is applied: RELRES=norm(MR\R)/norm(MR\B)
+%   OPT='l': ML is applied: RELRES=norm(ML\r)/norm(ML\b)
+%   OPT='r': MR is applied: RELRES=norm(MR\r)/norm(MR\b)
 %   OPT='w': the W-norm is used.
-%   OPT='' : RELRES=norm(R)/norm(B) 
+%   OPT='' : RELRES=norm(r)/norm(b) 
 %   Option combinations are allowed.
 %   The default value depends on the presence of ML, MR, W, so that the
 %   residual corresponds to the one that is minimized by the algorithm.
 %   Examples:
-%   If ML is provided, or ML and MR, then RELRES=norm(ML\R)/norm(ML\B).
-%   If MR only, then RELRES=norm(R)/norm(B).
+%   If ML is provided, or ML and MR, then RELRES=norm(ML\r)/norm(ML\b).
+%   If MR only, then RELRES=norm(r)/norm(b).
 %   If W is provided, then the W-norm is used.
 %
-%   [X,FLAG] = GMRES4R(A,B,...) also returns a convergence FLAG:
-%    0 GMRES4R converged to the desired tolerance TOL within MAXIT iterations.
-%    1 GMRES4R iterated MAXIT times but did not converge.
+%   [x,FLAG] = gmres4r(A,b,...) also returns a convergence FLAG:
+%    0 gmres4r converged to the desired tolerance TOL within MAXIT iterations.
+%    1 gmres4r iterated MAXIT times but did not converge.
 %    2 a breakdown occurred.
 %    3 preconditioner ML or MR caused an issue (e.g. generated Inf values).
 %    4 weight matrix W caused an issue (e.g. not positive definite).
 %
-%   [X,FLAG,RELRES] = GMRES4R(A,B,...) also returns the relative residual
-%   NORM(B-A*X)/NORM(B). If FLAG is 0, then RELRES <= TOL. Note that with
+%   [x,FLAG,RELRES] = gmres4r(A,b,...) also returns the relative residual
+%   NORM(b-A*x)/NORM(b). If FLAG is 0, then RELRES <= TOL. Note that with
 %   preconditioners the preconditioned relative residual may be used.
 %   See argument 'res' for details.
 %
-%   [X,FLAG,RELRES,ITER] = GMRES4R(A,B,...) also returns both the iteration
-%   number at which X was computed: 0 <= ITER <= MAXIT.
+%   [x,FLAG,RELRES,ITER] = gmres4r(A,b,...) also returns both the iteration
+%   number at which x was computed: 0 <= ITER <= MAXIT.
 %
-%   [X,FLAG,RELRES,ITER,ABSRESVEC] = GMRES4R(A,B,...) also returns a vector of
+%   [x,FLAG,RELRES,ITER,ABSRESVEC] = gmres4r(A,b,...) also returns a vector of
 %   the absolute residual norms at each iteration.
 %   See argument 'res' for detail on how ABSRESVEC is computed according
 %   to the presence of preconditioners and weighted norm.
 %
-%   [X,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC] = GMRES4R(A,B,...) also returns a 
+%   [x,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC] = gmres4r(A,b,...) also returns a 
 %   vector of the relative residual norms at each iteration, used as 
 %   convergence criterion.
 %   See argument 'res' for detail on how RELRESVEC is computed according
 %   to the presence of preconditioners and weighted norm.
 %
-%   [X,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC,XVEC] = GMRES4R(A,B,...) also 
+%   [x,FLAG,RELRES,ITER,ABSRESVEC,RELRESVEC,XVEC] = gmres4r(A,b,...) also 
 %   returns the successive approximate solutions.
 %
-%   Author: P. Matalon
+%   Author: P. Matalon, N. Spillane
 
     %% Argument processing
     
