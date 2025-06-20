@@ -1,9 +1,40 @@
+%% ------------------------------------------------------------------------
+% This script implement the Illustrations section 4.1.
+% 
+% To reproduce the figures, change the parameters as follows:
+% - Experiment 1 (Figure 1):
+%     I_gmres_cc = 'stagnate'     (a)
+%                  'linear_decay' (b)
+%                  'irregular'    (c)
+%     M_eigenvalues = 'two_distinct'
+%
+% - Experiment 2 (Figure 2): same, but with
+%     M_eigenvalues = 'three_distinct'
+%
+% - Experiment 3 (Figure 3): same, but with
+%     M_eigenvalues = 'evenly_spaced'
+%
+% - Experiment 4 (Figure 4):
+%     nsamples = 11;
+%     I_gmres_cc = 'linear_decay';
+%     M_eigenvalues = 'two_distinct';
+%     diagonal_T = 1;
+%     shift_eigenvalues = 1;
+%     k = n/2;
+%
+%     Then, in the section 'Prescribed eigenvalues of M', in the 
+%       if strcmp(M_eigenvalues, 'two_distinct'),
+%     uncomment
+%        mu = [10.^12*ones(k,1); ones(n-k,1)]; % Figure (a)
+%        mu = [ones(k,1); 10.^12*ones(n-k,1)]; % Figure (b)
+%% ------------------------------------------------------------------------
+
 hold off
 
 %% -------------- Experiment parameters
 
 n = 20; % system size
-nsamples = 20; % number of M-GMRES convergence curves randomly generated
+nsamples = 11; % number of M-GMRES convergence curves randomly generated
 
 % 1 ---- Uncomment the convergence curve you want for I-GMRES
 
@@ -20,11 +51,11 @@ M_eigenvalues = 'two_distinct'; % two distinct values with large gap
 %M_eigenvalues = 'evenly_spaced'; % evenly spread out in log scale
 %M_eigenvalues = 'random'; % random in (0,1)
 
-diagonal_T = 1; % force T to be diagonal
+diagonal_T = 0; % force T to be diagonal
 
 shuffle_eigenvalues = 0; % shuffle for each new sample (use with diagonal_T)
-shift_eigenvalues   = 1; % circular shift for each new sample (use with diagonal_T)
-reverse_eigenvalues = 1;
+shift_eigenvalues   = 0; % circular shift for each new sample (use with diagonal_T)
+reverse_eigenvalues = 0;
 
 k = 8; % multiplicity of the large eigenvalue in 'two_distinct'
 
@@ -34,6 +65,7 @@ k2 = 4; % multiplicity of the 2nd large eigenvalue in 'three_distinct'
 normalize_residuals = 1;
 
 export_data_to_file = 0; % export for the paper
+filename = 'experiment1.txt';
 
 
 %% -------------- Prescribed convergence curve for I-GMRES
@@ -70,6 +102,8 @@ gI(n) = rI(end);
 
 if strcmp(M_eigenvalues, 'two_distinct') % two distinct values with large gap
     mu = [ones(n-k,1); 10.^12*ones(k,1)];
+    %mu = [ones(k,1); 10.^12*ones(n-k,1)];
+    %mu = [10.^12*ones(k,1); ones(n-k,1)];
 elseif strcmp(M_eigenvalues, 'two_clusters') % two clusters of values with large gap
     random = randi(100, n,1);
     mu = random.*[ones(n-k,1); 10.^12*ones(k,1)];
@@ -102,8 +136,8 @@ for s = 1:nsamples
     if shuffle_eigenvalues
         Sigma = Sigma(randperm(n));
     end
-    if shift_eigenvalues && s > 1
-        Sigma = circshift(Sigma, -1);
+    if shift_eigenvalues && (s > 1 || shift_eigenvalues == -1)
+        Sigma = circshift(Sigma, shift_eigenvalues*1);
     end
 
     % Random generation of T^-1 with Sigma as singular values
@@ -130,6 +164,5 @@ end
 legend([I_gmres_plot, M_gmres_plot], 'I-GMRES', 'M-GMRES');
 
 if export_data_to_file
-    filename = ['rW__' I_gmres_cc '__' M_eigenvalues '.txt'];
     save(filename, 'export_data', '-ascii');
 end
