@@ -14,6 +14,7 @@ Note that the Matlab package [krylov4r](https://github.com/hpc-maths/krylov4r) i
 
 ## Description
 
+All runnable scripts are in `src/`:
 ```matlab
 generate_system_prescribed_cc.m          % proof of Theorem 9
 norm_for_prescribed_convergence.m        % proofs of Theorems 11 and 21
