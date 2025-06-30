@@ -1,7 +1,8 @@
 addpath('krylov4r');
+addpath('utils');
 
 %% ------------------------------------------------------------------------
-% Theorem 10: simulateneous prescription of two convergence curves, 
+% Theorem 22: simulateneous prescription of two convergence curves, 
 % one for left-prec., the other for right-prec
 % -------------------------------------------------------------------------
 
@@ -15,37 +16,27 @@ r_R = zeros(n,1);
 for i=1:n
     r_R(i) = 10^(-(i-1));
 end
-r_R(3:5) = r_R(3);
+%r_R(3:5) = r_R(3);
 
 % Convergence curve for M-GMRES
 r_L = zeros(n,1);
 for i=1:n
     r_L(i) = 10^(-1.5*(i-1));
 end
-r_L(3:5) = r_L(3);
-%r_tilde(5:8) = r_tilde(5);
+%r_L(3:5) = r_L(3);
 
 % Eigenvalues of the preconditioned system
-lambda = 1:n;%ones(n,1);
+lambda = ones(n,1);
 
 %% Build system and preconditioner
 
 % Residual decrease vector for right-preconditioned GMRES
-g_R = zeros(n,1);
-for i=1:n-1
-    g_R(i) = sqrt(r_R(i)^2 - r_R(i+1)^2);
-end
-g_R(n) = r_R(end);
+g_R = decrease_vector(r_R);
 % Residual decrease vector for M-GMRES
-g_L = zeros(n,1);
-for i=1:n-1
-    g_L(i) = sqrt(r_L(i)^2 - r_L(i+1)^2);
-end
-g_L(n) = r_L(end);
+g_L = decrease_vector(r_L);
 
 % Matrix T such that g = T g_tilde
 T = build_T(g_R, g_L);
-assert(norm(g_R-T*g_L) == 0);
 
 % Arbitrary choice of W
 W = gallery('orthog', n, 4);
@@ -56,6 +47,9 @@ H = @(x) H_inv\x;
 
 [A_hat, b] = generate_system_for_cc(r_R, lambda, W);
 A = @(x) A_hat(H_inv*x);
+
+%A_mat = A(eye(n,n));
+%A = A_mat;
 
 
 %% Right preconditioned

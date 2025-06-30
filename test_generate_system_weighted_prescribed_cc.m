@@ -1,4 +1,5 @@
 addpath('krylov4r');
+addpath('utils');
 
 %% ------------------------------------------------------------------------
 % Corollary 14: simulateneous prescription of two convergence curves
@@ -33,17 +34,9 @@ lambda = 1:n;
 %% Build system and preconditioner
 
 % Residual decrease vector for I-GMRES
-g = zeros(n,1);
-for i=1:n-1
-    g(i) = sqrt(r(i)^2 - r(i+1)^2);
-end
-g(n) = r(end);
+g = decrease_vector(r);
 % Residual decrease vector for M-GMRES
-g_tilde = zeros(n,1);
-for i=1:n-1
-    g_tilde(i) = sqrt(r_tilde(i)^2 - r_tilde(i+1)^2);
-end
-g_tilde(n) = r_tilde(end);
+g_tilde = decrease_vector(r_tilde);
 
 % Matrix T such that g = T g_tilde
 T = build_T(g, g_tilde);

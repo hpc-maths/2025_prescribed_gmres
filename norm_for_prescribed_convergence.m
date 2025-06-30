@@ -1,5 +1,6 @@
 addpath('krylov4r');
 addpath('test_cases');
+addpath('utils');
 
 %% ------------------------------------------------------------------------
 % This script implements, for a given system (A,b) and a prescribed convergence curve
@@ -25,11 +26,7 @@ end
 r(8:11) = r(8); % stagnation during 3 iterations
 
 % Associated residual decrease vector
-g_tilde = zeros(m,1);
-for i=1:m-1
-    g_tilde(i) = sqrt(r(i)^2 - r(i+1)^2);
-end
-g_tilde(m) = r(end);
+g_tilde = decrease_vector(r);
 
 % Orthonormal basis for the residual Krylov space (Ab, A^2b, ..., A^nb)
 W = zeros(n,m);

@@ -1,5 +1,6 @@
 addpath('krylov4r');
 addpath('test_cases');
+addpath('utils');
 
 %% ------------------------------------------------------------------------
 % This script implements Corollary 24.
@@ -60,17 +61,8 @@ r_R = absresvec;
 m = length(r_L)-1;
 
 % Residual decrease vectors
-g_L = zeros(n,1);
-for i=1:m-1
-    g_L(i) = sqrt(r_L(i)^2 - r_L(i+1)^2);
-end
-g_L(m) = r_L(end);
-
-g_R = zeros(n,1);
-for i=1:m-1
-    g_R(i) = sqrt(r_R(i)^2 - r_R(i+1)^2);
-end
-g_R(m) = r_R(end);
+g_L = decrease_vector(r_L);
+g_R = decrease_vector(r_R);
 
 % A_L = HA
 apply_A_L = @(x) apply_H(A*x);

@@ -1,3 +1,5 @@
+addpath('utils');
+
 hold off
 
 %% -------------- Experiment parameters
@@ -44,11 +46,7 @@ end
 rI = rI/rI(1); % normalization
 
 % Residual decrease vector for I-GMRES
-gI = zeros(n,1);
-for i=1:n-1
-    gI(i) = sqrt(rI(i)^2 - rI(i+1)^2);
-end
-gI(n) = rI(end);
+gI = decrease_vector(rI);
 
 
 %% -------------- Prescribed convergence curve for M-GMRES
@@ -82,11 +80,7 @@ end
 rM = rM/rM(1); % normalization
 
 % Residual decrease vector for M-GMRES
-gM = zeros(n,1);
-for i=1:n-1
-    gM(i) = sqrt(rM(i)^2 - rM(i+1)^2);
-end
-gM(n) = rM(end);
+gM = decrease_vector(rM);
 
 %% -------------- Plots
 
