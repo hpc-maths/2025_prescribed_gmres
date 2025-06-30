@@ -1,7 +1,7 @@
 addpath('krylov4r');
 
 %% ------------------------------------------------------------------------
-% Theorem 6: simulateneous prescription of two convergence curves
+% Corollary 14: simulateneous prescription of two convergence curves
 % -------------------------------------------------------------------------
 
 close all

@@ -3,7 +3,7 @@ addpath('test_cases');
 
 %% ------------------------------------------------------------------------
 % This script implements, for a given system (A,b) and a prescribed convergence curve
-% - a weight matrix with which weighted GMRES realizes that convervence curve (Th. 4)
+% - a weight matrix with which weighted GMRES realizes that convervence curve (Th. 11)
 % - a split preconditioner with which GMRES realizes that convergence curve.
 % -------------------------------------------------------------------------
 

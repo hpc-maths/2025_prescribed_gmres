@@ -2,7 +2,7 @@ addpath('krylov4r');
 addpath('test_cases');
 
 %% ------------------------------------------------------------------------
-% This script implements Theorem 10.
+% This script implements Corollary 24.
 % Let (A, b) define a given linear system, and H a preconditioner. 
 % Denote by gL (resp. gR) the residual decrease vector realized by 
 % I-GMRES(A, b) preconditioned by H on the left (resp. on the right).
@@ -17,7 +17,7 @@ close all
 % Matrix A
 % This one is chosen because it left and right preconditioning make a
 % sensible difference.
-load test_cases/gm_mcfe_765.mat 
+load test_cases/gm_mcfe_765.mat
 
 % Preconditioner
 H = 1/2 * (A+A');
