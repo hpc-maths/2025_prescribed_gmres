@@ -8,14 +8,14 @@ The scripts hold the implementation of the theorems' constructive proofs, and re
 
 ## Installation
 
-You simply have to clone the repository.
+Simply clone the repository.
 
 Note that the Matlab package [krylov4r](https://github.com/hpc-maths/krylov4r) is used as a dependency. However, it is provided here, so all scripts can be run without any further installation.
 
 ## Description
 
 ```matlab
-test_generate_system_prescribed_cc.m          % proof of Theorem 9 (Greenbaum et al., 1996)
+test_generate_system_prescribed_cc.m          % proof of Theorem 9
 norm_for_prescribed_convergence.m             % proofs of Theorems 11 and 21
 test_generate_system_weighted_prescribed_cc.m % proof of Corollary 14
 test_generate_system_LR_prec_prescribed_cc.m  % proof of Theorem 22
